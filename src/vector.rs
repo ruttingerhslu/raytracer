@@ -44,10 +44,11 @@ impl Vector {
         Self { x, y }
     }
 
-    pub fn draw(&self, buffer: &mut [u32], color: u32, x0: f32, y0: f32) {
-        if self.x < x0 && self.y < y0 {
-            let index = (self.y * x0 + self.x) as usize;
-            buffer[index] = color;
-        }
+    pub fn distance(&self, other: &Vector) -> f32 {
+        (*self - *other).magnitude()
+    }
+
+    pub fn magnitude(&self) -> f32 {
+        (self.x * self.x + self.y * self.y).sqrt()
     }
 }
