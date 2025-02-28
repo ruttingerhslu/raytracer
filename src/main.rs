@@ -1,17 +1,16 @@
 use minifb::{Key, Window, WindowOptions};
 use rayon::prelude::*;
 
-use vector::Vector;
-use circle::Circle;
-
-mod vector;
-mod circle;
+use raytracer::vector::Vector;
+use raytracer::sphere::Sphere;
+use raytracer::ray::Ray;
+use raytracer::hittable::Hittable;
 
 const WIDTH: usize = 640;
 const HEIGHT: usize = 480;
 
 struct Scene {
-    circles: Vec<Circle>,
+    spheres: Vec<Sphere>,
 }
 
 fn render_scene(scene: &Scene) -> Vec<u32> {
@@ -20,13 +19,21 @@ fn render_scene(scene: &Scene) -> Vec<u32> {
     buffer.par_iter_mut().enumerate().for_each(|(index, pixel)| {
         let x = (index % WIDTH) as f32;
         let y = (index / WIDTH) as f32;
-        let point = Vector::new(x, y);
+        let point = Vector::new(x, y, -100_f32);
+        let direction = Vector::new(0_f32, 0_f32, 1_f32);
+        let ray = Ray::new(point, direction);
 
         let mut color = 0x000000;
 
-        for circle in &scene.circles {
-            if circle.contains(point) {
-                color |= circle.get_color(); // Merge colors if inside multiple circles
+        let mut closest_t = f32::INFINITY;
+
+        for sphere in &scene.spheres {
+            if let Some(rec) = sphere.hit(&ray, 0.001, closest_t) {
+                closest_t = rec.t;
+                let hit_record = Some(rec);
+                if hit_record.is_some() {
+                    color = sphere.get_color_shade(hit_record.unwrap().normal);
+                }
             }
         }
 
@@ -37,19 +44,19 @@ fn render_scene(scene: &Scene) -> Vec<u32> {
 }
 
 fn main() {
-    let vector_r = Vector::new(WIDTH as f32 / 2.0 - 50.0, HEIGHT as f32 / 2.0);
-    let vector_g = Vector::new(WIDTH as f32 / 2.0 + 50.0, HEIGHT as f32 / 2.0);
-    let vector_b = Vector::new(WIDTH as f32 / 2.0, HEIGHT as f32 / 2.0 - 86.6);
+    let vector_r = Vector::new(WIDTH as f32 / 2.0 - 50.0, HEIGHT as f32 / 2.0, 10_f32);
+    let vector_g = Vector::new(WIDTH as f32 / 2.0 + 50.0, HEIGHT as f32 / 2.0, 20_f32);
+    let vector_b = Vector::new(WIDTH as f32 / 2.0, HEIGHT as f32 / 2.0 - 86.6, 40_f32);
 
     let scene = Scene {
-        circles: vec![
-            Circle::new(vector_r, 100.0, 0xFF0000), // Red
-            Circle::new(vector_g, 100.0, 0x00FF00), // Green
-            Circle::new(vector_b, 100.0, 0x0000FF), // Blue
+        spheres: vec![
+            Sphere::new(vector_r, 100.0, 0xFF0000), // Red
+            Sphere::new(vector_g, 60.0, 0x00FF00), // Green
+            Sphere::new(vector_b, 100.0, 0x0000FF), // Blue
         ],
     };
 
-    let mut window = Window::new("RGB Overlapping Circles", WIDTH, HEIGHT, WindowOptions::default()).unwrap();
+    let mut window = Window::new("RGB Overlapping Spheres", WIDTH, HEIGHT, WindowOptions::default()).unwrap();
 
     let frame = render_scene(&scene);
 
