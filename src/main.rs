@@ -28,12 +28,10 @@ fn render_scene(scene: &Scene) -> Vec<u32> {
         let mut closest_t = f32::INFINITY;
 
         for sphere in &scene.spheres {
-            if let Some(rec) = sphere.hit(&ray, 0.001, closest_t) {
+            color = if let Some(rec) = sphere.hit(&ray, 0.001, closest_t) {
                 closest_t = rec.t;
-                let hit_record = Some(rec);
-                if hit_record.is_some() {
-                    color = sphere.get_color_shade(hit_record.unwrap().normal);
-                }
+                light = Vector::new(WIDTH as f32 / 2.0, HEIGHT as f32 / 2.0, -150.0);
+                color = sphere.get_color_shadow(rec.point, light, 0xFFFFFF)
             }
         }
 
@@ -56,7 +54,8 @@ fn main() {
         ],
     };
 
-    let mut window = Window::new("RGB Overlapping Spheres", WIDTH, HEIGHT, WindowOptions::default()).unwrap();
+    let mut window = Window::new("Scene", WIDTH, HEIGHT, WindowOptions::default())
+        .unwrap();
 
     let frame = render_scene(&scene);
 

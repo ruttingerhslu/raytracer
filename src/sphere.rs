@@ -32,6 +32,38 @@ impl Sphere {
 
         (r << 16) | (g << 8) | b
     }
+
+    pub fn get_color_shadow(
+        &self, point_q: Vector, 
+        point_l: Vector, 
+        light_color: u32
+    ) -> u32 {
+        let n = (point_q - self.center).normalize();
+        let s = (point_l - point_q).normalize();
+
+        let cos_delta = Vector::dot(&n, &s).max(0.0);
+
+        let (r_obj, g_obj, b_obj) = Sphere::extract_rgb(self.color);
+
+        let (r_light, g_light, b_light) = Sphere::extract_rgb(light_color);
+
+        let r_shaded = (r_obj * r_light * cos_delta * 255.0) as u32;
+        let g_shaded = (g_obj * g_light * cos_delta * 255.0) as u32;
+        let b_shaded = (b_obj * b_light * cos_delta * 255.0) as u32;
+
+        Sphere::pack_rgb(r_shaded, g_shaded, b_shaded)
+    }
+
+    fn extract_rgb(color: u32) -> (f32, f32, f32) {
+        let r = ((color >> 16) & 0xFF) as f32 / 255.0;
+        let g = ((color >> 8) & 0xFF) as f32 / 255.0;
+        let b = (color & 0xFF) as f32 / 255.0;
+        (r, g, b)
+    }
+
+    fn pack_rgb(r: u32, g: u32, b: u32) -> u32 {
+        (r << 16) | (g << 8) | b
+    }
 }
 
 impl Hittable for Sphere {
