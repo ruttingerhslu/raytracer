@@ -68,8 +68,12 @@ impl Vector {
         (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
     }
 
-    pub fn dot(v1: &Vector, v2: &Vector) -> f32 {
-        v1.x * v2.x + v1.y * v2.y + v1.z * v2.z
+    // pub fn dot(v1: &Vector, v2: &Vector) -> f32 {
+    //     v1.x * v2.x + v1.y * v2.y + v1.z * v2.z
+    // }
+
+    pub fn dot(&self, other: &Vector) -> f32 {
+        self.x * other.x + self.y * other.y + self.z * other.z
     }
 
     pub fn normalize(&self) -> Vector {
@@ -81,6 +85,38 @@ impl Vector {
             x: self.x / mag,
             y: self.y / mag,
             z: self.z / mag,
+        }
+    }
+
+    pub fn cross(&self, other: &Vector) -> Vector {
+        Vector::new(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
+    }
+
+    pub fn rotate(&self, angle: f32, axis: &str) -> Vector {
+        let cos_theta = angle.to_radians().cos();
+        let sin_theta = angle.to_radians().sin();
+
+        match axis {
+            "x" => Vector {
+                x: self.x,
+                y: cos_theta * self.y - sin_theta * self.z,
+                z: sin_theta * self.y + cos_theta * self.z,
+            },
+            "y" => Vector {
+                x: cos_theta * self.x + sin_theta * self.z,
+                y: self.y,
+                z: -sin_theta * self.x + cos_theta * self.z,
+            },
+            "z" => Vector {
+                x: cos_theta * self.x - sin_theta * self.y,
+                y: sin_theta * self.x + cos_theta * self.y,
+                z: self.z,
+            },
+            _ => *self,
         }
     }
 }
