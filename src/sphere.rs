@@ -1,78 +1,73 @@
 use crate::hittable::{Hittable, HitRecord};
 use crate::vector::Vector;
 use crate::ray::Ray;
-use crate::color_utils::{to_rgb, from_rgb, apply_ambient, apply_diffuse};
+use crate::color::Color;
+use crate::light::Light;
 
 pub struct Sphere {
     pub center: Vector,
     pub radius: f32,
-    pub color: u32,
+    pub color: Color,
 }
 
 impl Sphere {
-    pub fn new(center: Vector, radius: f32, color: u32) -> Self {
+    pub fn new(center: Vector, radius: f32, color: Color) -> Self {
         Self { center, radius, color }
     }
-
-    pub fn get_color(&self) -> u32 {
-        self.color
-    }
-
 }
 
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let oc = ray.origin() - self.center;
-        let a = ray.direction().dot(&ray.direction());
         let h = oc.dot(&ray.direction());
         let c = oc.dot(&oc) - self.radius * self.radius;
-        let discriminant = h * h - a * c;
+        let discriminant = h * h - c;
 
         if discriminant < 0.0 {
             return None;
         }
 
         let sqrt_d = discriminant.sqrt();
-        let mut t = (-h - sqrt_d) / a;
+        let mut t = -h - sqrt_d;
 
         if t < t_min || t > t_max {
-            t = (-h + sqrt_d) / a;
+            t = -h + sqrt_d;
             if t < t_min || t > t_max {
                 return None;
             }
         }
 
         let point = ray.at(t);
-        let normal = (point - self.center).normalize();
+        let mut normal = (point - self.center).normalize();
+        let front_face = ray.direction().dot(&normal) < 0.0;
+        if !front_face {
+            normal = -normal;
+    }
 
-        Some(HitRecord { point, normal, t })
+    Some(HitRecord { point, normal, t })
     }
 
     fn get_color_shade(
-        &self, point_q: Vector, 
-        point_l: Vector, 
-        light_color: u32,
-        ambient_intensity: f32
-    ) -> u32 {
-        let n = (point_q - self.center).normalize();
-        let s = (point_l - point_q).normalize();
-        
+        &self, hit_point: Vector, 
+        light: &Light,
+        camera_point: Vector
+    ) -> Color {
+        let n = (hit_point - self.center).normalize();
+        let s = (light.center - hit_point).normalize();
+        let v = (camera_point - hit_point).normalize();
+
         let cos_delta = n.dot(&s).max(0.0);
+        let diffuse_intensity = cos_delta;
 
-        let diffuse_intensity = 0.8;
+        let halfway = (s + v).normalize();
+        let specular_intensity = n.dot(&halfway).max(0.0).powf(32.0); // shininess 32.0
 
-        let ambient = apply_ambient(self.color, light_color, ambient_intensity);
-        let diffuse = apply_diffuse(self.color, light_color, diffuse_intensity, cos_delta);
+        let ambient = self.color * 0.2;
+ 
+        let diffuse = self.color * light.color * diffuse_intensity;
 
-        let (r_a, g_a, b_a) = to_rgb(ambient);
-        let (r_d, g_d, b_d) = to_rgb(diffuse);
+        let specular = light.color * specular_intensity;
 
-        let r_final = (r_a + r_d).min(1.0);
-        let g_final = (g_a + g_d).min(1.0);
-        let b_final = (b_a + b_d).min(1.0);
-
-        from_rgb((r_final * 255.0).clamp(0.0, 255.0) as u32, 
-                 (g_final * 255.0).clamp(0.0, 255.0) as u32, 
-                 (b_final * 255.0).clamp(0.0, 255.0) as u32)
+        diffuse + specular + ambient
     }
 }

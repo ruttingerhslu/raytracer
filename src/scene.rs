@@ -2,66 +2,71 @@ use crate::vector::Vector;
 use crate::sphere::Sphere;
 use crate::ray::Ray;
 use crate::hittable::Hittable;
-use crate::color_utils::apply_intensity;
+use crate::hittable::HitRecord;
+use crate::color::Color;
 use crate::plane::Plane;
 use rayon::prelude::*;
+use crate::light::Light;
 
 pub struct Scene {
     pub spheres: Vec<Sphere>,
     pub planes: Vec<Plane>,
+    pub lights: Vec<Light>
 }
 
 impl Scene {
+
     pub fn is_occluded(&self, ray: &Ray, max_t: f32) -> bool {
-        self.spheres.iter().map(|s| s as &dyn Hittable)
-            .chain(self.planes.iter().map(|p| p as &dyn Hittable)) 
-            .any(|hittable| hittable.hit(ray, 0.001, max_t).is_some())
+        self.planes
+            .iter()
+            .map(|s| s as &dyn Hittable)
+            .filter_map(|hittable| hittable.hit(ray, 0.001, max_t))
+            .any(|hit| hit.t < max_t)
     }
 
-    pub fn render_scene(scene: &Scene, width: usize, height: usize) -> Vec<u32> {
+    pub fn render_scene(&self, width: usize, height: usize) -> Vec<u32> {
         let mut buffer = vec![0x000000; width * height];
 
         buffer.par_iter_mut().enumerate().for_each(|(index, pixel)| {
-            let x = (index % width) as f32;
-            let y = (index / width) as f32;
-            let point = Vector::new(x, y, -1000_f32);
-            let direction = Vector::new(0_f32, 0_f32, 1_f32);
-            let ray = Ray::new(point, direction);
+            let (x, y) = (index % width, index / width);
+            let camera_point = Vector::new(x as f32, y as f32, -500.0);
+            let direction = Vector::new(0.0, 0.0, 1.0);
+            let ray = Ray::new(camera_point, direction);
 
-            let light_color = 0xFFFFFF;
-            let ambient_intensity = 0.4;
-            let light = Vector::new(width as f32 / 2.0, height as f32 / 2.0, -150.0);
-            let mut color = apply_intensity(light_color, ambient_intensity);
+            let mut color = Color::from_u32(0xFFFFFF) * 0.4;
 
+            let mut closest_hit: Option<(&dyn Hittable, HitRecord)> = None;
             let mut closest_t = f32::INFINITY;
 
-            for hittable in scene.spheres.iter().map(|s| s as &dyn Hittable)
-                .chain(scene.planes.iter().map(|p| p as &dyn Hittable)) 
-            {
+            for hittable in self.spheres.iter().map(|s| s as &dyn Hittable)
+                .chain(self.planes.iter().map(|p| p as &dyn Hittable)) {
                 if let Some(rec) = hittable.hit(&ray, 0.001, closest_t) {
                     closest_t = rec.t;
-                    let in_shadow = {
-                        let shadow_origin = rec.point + rec.normal * 1e-4;
-                        let shadow_ray = Ray::new(shadow_origin, (light - rec.point).normalize());
-                        scene.is_occluded(&shadow_ray, light.distance(&rec.point))
-                    };
-                    
-                    if in_shadow {
-                        color = hittable.get_color_shade(rec.point, light, light_color, ambient_intensity);
-                        color = apply_intensity(color, 0.4);
-                    } else {
-                        color = hittable.get_color_shade(rec.point, light, light_color, ambient_intensity);
-                    }
+                    closest_hit = Some((hittable, rec));
                 }
             }
 
-            *pixel = color;
+            if let Some((hittable, rec)) = closest_hit {
+                let mut total_color = Color::default();
+
+                for light in &self.lights {
+                    let shadow_origin = rec.point + rec.normal * 1e-4;
+                    let shadow_ray = Ray::new(shadow_origin, (light.center - rec.point).normalize());
+                    
+                    total_color = total_color + hittable.get_color_shade(rec.point, light, camera_point);
+                    if self.is_occluded(&shadow_ray, light.center.distance(&rec.point)) {
+                        total_color = total_color * 0.5;
+                    }
+                }
+                color = total_color.clamp();
+            }
+            *pixel = Color::to_u32(color);
         });
 
         buffer
     }
 
-    pub fn create_cube(center: Vector, size: f32, color: u32, rotation: Vector) -> Vec<Plane> {
+    pub fn create_cube(center: Vector, size: f32, color: Color, rotation: Vector) -> Vec<Plane> {
         let half = size / 2.0;
 
         let mut vertices = vec![
@@ -79,7 +84,7 @@ impl Scene {
             *v = v.rotate(rotation.x, "x")
                   .rotate(rotation.y, "y")
                   .rotate(rotation.z, "z")
-                  + center; // Move back to original position
+                  + center;
         }
         vec![
             // Front face

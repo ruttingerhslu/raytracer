@@ -5,3 +5,5 @@ pub mod plane;
 pub mod ray;
 pub mod color_utils;
 pub mod scene;
+pub mod light;
+pub mod color;

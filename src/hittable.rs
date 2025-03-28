@@ -1,5 +1,13 @@
 use crate::vector::Vector;
 use crate::ray::Ray;
+use crate::color::Color;
+use crate::light::Light;
+
+pub struct Material {
+    pub color: Color,       // Color of the material
+    pub ambient_intensity: f32, // How much ambient light the material receives
+    pub shininess: f32,     // Specular shininess value
+}
 
 pub struct HitRecord {
     pub point: Vector,
@@ -12,8 +20,7 @@ pub trait Hittable {
 
     fn get_color_shade(
         &self, point_q: Vector, 
-        point_l: Vector, 
-        light_color: u32,
-        ambient_intensity: f32
-    ) -> u32;
+        light: &Light,
+        camera_point: Vector,
+    ) -> Color;
 }
