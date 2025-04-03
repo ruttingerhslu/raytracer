@@ -23,4 +23,6 @@ pub trait Hittable {
         light: &Light,
         camera_point: Vector,
     ) -> Color;
+
+    fn get_ambient(&self) -> Color;
 }

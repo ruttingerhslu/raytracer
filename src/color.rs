@@ -54,9 +54,6 @@ impl Add for Color {
 
     fn add(self, other: Self) -> Self {
         Self {
-            // r: (self.r + other.r).min(1.0),
-            // g: (self.g + other.g).min(1.0),
-            // b: (self.b + other.b).min(1.0),
             r: (self.r + other.r).clamp(0.0, 1.0),
             g: (self.g + other.g).clamp(0.0, 1.0),
             b: (self.b + other.b).clamp(0.0, 1.0),
@@ -69,9 +66,9 @@ impl Mul<f32> for Color {
 
     fn mul(self, factor: f32) -> Self {
         Self {
-            r: (self.r * factor).min(1.0),
-            g: (self.g * factor).min(1.0),
-            b: (self.b * factor).min(1.0),
+            r: (self.r * factor).clamp(0.0, 1.0),
+            g: (self.g * factor).clamp(0.0, 1.0),
+            b: (self.b * factor).clamp(0.0, 1.0),
         }
     }
 }
@@ -81,9 +78,9 @@ impl Mul<Color> for Color {
 
     fn mul(self, other: Color) -> Self {
         Self {
-            r: (self.r * other.r).min(1.0),
-            g: (self.g * other.g).min(1.0),
-            b: (self.b * other.b).min(1.0),
+            r: (self.r * other.r).clamp(0.0, 1.0),
+            g: (self.g * other.g).clamp(0.0, 1.0),
+            b: (self.b * other.b).clamp(0.0, 1.0),
         }
     }
 }

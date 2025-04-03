@@ -55,6 +55,14 @@ impl ops::Neg for Vector {
     }
 }
 
+impl ops::Mul<Vector> for f32 {
+    type Output = Vector;
+
+    fn mul(self, vector: Vector) -> Vector {
+        vector * self
+    }
+}
+
 impl Vector {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
@@ -75,7 +83,7 @@ impl Vector {
     pub fn normalize(&self) -> Vector {
         let mag = self.magnitude();
         if mag == 0.0 {
-            return Vector { x: 0.0, y: 0.0, z: 0.0 }; // Avoid division by zero
+            return Vector { x: 0.0, y: 0.0, z: 0.0 };
         }
         Vector {
             x: self.x / mag,

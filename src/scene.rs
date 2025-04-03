@@ -11,7 +11,7 @@ use crate::light::Light;
 pub struct Scene {
     pub spheres: Vec<Sphere>,
     pub planes: Vec<Plane>,
-    pub lights: Vec<Light>
+    pub lights: Vec<Light>,
 }
 
 impl Scene {
@@ -20,8 +20,25 @@ impl Scene {
         self.planes
             .iter()
             .map(|s| s as &dyn Hittable)
+            .chain(self.spheres.iter().map(|s| s as &dyn Hittable))
             .filter_map(|hittable| hittable.hit(ray, 0.001, max_t))
             .any(|hit| hit.t < max_t)
+    }
+
+    pub fn trace(&self, ray: &Ray) -> Option<(&dyn Hittable, HitRecord)> {
+        let mut closest_hit: Option<(&dyn Hittable, HitRecord)> = None;
+        let mut closest_t = f32::INFINITY;
+
+        // send ray
+        for hittable in self.spheres.iter().map(|s| s as &dyn Hittable)
+            .chain(self.planes.iter().map(|p| p as &dyn Hittable)) {
+            if let Some(rec) = hittable.hit(ray, 1e-3, closest_t) {
+                closest_t = rec.t;
+                closest_hit = Some((hittable, rec));
+            }
+        }
+        
+        closest_hit
     }
 
     pub fn render_scene(&self, width: usize, height: usize) -> Vec<u32> {
@@ -33,37 +50,69 @@ impl Scene {
             let direction = Vector::new(0.0, 0.0, 1.0);
             let ray = Ray::new(camera_point, direction);
 
-            let mut color = Color::from_u32(0xFFFFFF) * 0.4;
+            // default background color
+            let mut color = Color::from_u32(0xFFFFFF) * 0.3;
 
-            let mut closest_hit: Option<(&dyn Hittable, HitRecord)> = None;
-            let mut closest_t = f32::INFINITY;
-
-            for hittable in self.spheres.iter().map(|s| s as &dyn Hittable)
-                .chain(self.planes.iter().map(|p| p as &dyn Hittable)) {
-                if let Some(rec) = hittable.hit(&ray, 0.001, closest_t) {
-                    closest_t = rec.t;
-                    closest_hit = Some((hittable, rec));
-                }
+            if let Some((hittable, rec)) = self.trace(&ray) {
+                // object was hit
+                color = self.compute_color(hittable.get_ambient(), &ray, &camera_point, hittable, rec, 1);
             }
 
-            if let Some((hittable, rec)) = closest_hit {
-                let mut total_color = Color::default();
-
-                for light in &self.lights {
-                    let shadow_origin = rec.point + rec.normal * 1e-4;
-                    let shadow_ray = Ray::new(shadow_origin, (light.center - rec.point).normalize());
-                    
-                    total_color = total_color + hittable.get_color_shade(rec.point, light, camera_point);
-                    if self.is_occluded(&shadow_ray, light.center.distance(&rec.point)) {
-                        total_color = total_color * 0.5;
-                    }
-                }
-                color = total_color.clamp();
-            }
             *pixel = Color::to_u32(color);
         });
 
         buffer
+    }
+
+    fn compute_color(&self, color: Color, ray: &Ray, camera_point: &Vector, hittable: &dyn Hittable, rec: HitRecord, depth: usize) -> Color {
+        let mut total_color = color;
+        if depth >= 10 {
+            return total_color;
+        }
+
+        let num_lights = self.lights.len();
+        if num_lights > 0 {
+            let mut total_light_contribution = Color::default();
+
+            // send shadow ray for each light source
+            for light in &self.lights {
+                let shadow_origin = rec.point + rec.normal * 1e-3;
+                let shadow_dir = (light.center - rec.point).normalize();
+                let shadow_ray = Ray::new(shadow_origin, shadow_dir);
+                if self.is_occluded(&shadow_ray, light.center.distance(&rec.point)) {
+                    // shadow
+                    total_light_contribution = total_light_contribution + Color::default();
+                } else {
+                    // shading
+                    total_light_contribution = total_light_contribution + hittable.get_color_shade(rec.point, light, *camera_point);
+                }
+            }
+            // divide for every light source
+            total_color = total_color + total_light_contribution * (1.0 / num_lights as f32);
+        }
+
+        let reflectivity = 0.5;
+        if reflectivity > 0.0 {
+            let reflected_color = self.handle_reflection(&ray, &rec, reflectivity);
+            total_color = total_color + reflected_color;  // Scale reflection contribution
+        }
+
+        return total_color.clamp();
+    }
+
+    fn handle_reflection(&self, ray: &Ray, rec: &HitRecord, reflectivity: f32) -> Color {
+        let reflect_dir = ray.direction - rec.normal * (2.0 * ray.direction.dot(&rec.normal));
+        let reflect_ray = Ray::new(rec.point + reflect_dir * 1e-4, reflect_dir);
+
+        if let Some((reflected_hittable, reflected_rec)) = self.trace(&reflect_ray) {
+            let reflected_color = reflected_hittable.get_color_shade(
+                reflected_rec.point, &self.lights[0], rec.point
+            );
+
+            return reflected_color * reflectivity;
+        }
+
+        Color::from_u32(0x000000)
     }
 
     pub fn create_cube(center: Vector, size: f32, color: Color, rotation: Vector) -> Vec<Plane> {

@@ -2,7 +2,7 @@ use crate::{vector::Vector};
 
 pub struct Ray {
     origin: Vector,
-    direction: Vector,
+    pub direction: Vector,
 }
 
 impl Ray {

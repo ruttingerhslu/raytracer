@@ -42,9 +42,9 @@ impl Hittable for Sphere {
         let front_face = ray.direction().dot(&normal) < 0.0;
         if !front_face {
             normal = -normal;
-    }
+        }
 
-    Some(HitRecord { point, normal, t })
+        Some(HitRecord { point, normal, t })
     }
 
     fn get_color_shade(
@@ -62,12 +62,13 @@ impl Hittable for Sphere {
         let halfway = (s + v).normalize();
         let specular_intensity = n.dot(&halfway).max(0.0).powf(32.0); // shininess 32.0
 
-        let ambient = self.color * 0.2;
- 
         let diffuse = self.color * light.color * diffuse_intensity;
-
         let specular = light.color * specular_intensity;
 
-        diffuse + specular + ambient
+        diffuse + specular
+    }
+
+    fn get_ambient(&self) -> Color {
+        self.color * 0.5
     }
 }
