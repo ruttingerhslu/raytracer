@@ -1,17 +1,23 @@
+use std::sync::Arc;
+
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 use crate::vec3::{self, Point3};
- 
+use crate::material::Material;
+
+#[derive(Clone)]
 pub struct Sphere {
     center: Point3,
     radius: f32,
+    mat: Arc<dyn Material + Send + Sync>,
 }
  
 impl Sphere {
-    pub fn new(cen: Point3, r: f32) -> Sphere {
+    pub fn new(cen: Point3, r: f32, mat: Arc<dyn Material>) -> Sphere {
         Sphere {
             center: cen,
             radius: r,
+            mat: mat
         }
     }
 }
@@ -29,7 +35,6 @@ impl Hittable for Sphere {
  
         let sqrt_d = f32::sqrt(discriminant);
  
-        // Find the nearest root that lies in the acceptable range
         let mut root = (-half_b - sqrt_d) / a;
         if root <= t_min || t_max <= root {
             root = (-half_b + sqrt_d) / a;
@@ -42,6 +47,11 @@ impl Hittable for Sphere {
         rec.p = r.at(rec.t);
         let outward_normal = (rec.p - self.center) / self.radius;
         rec.set_face_normal(r, outward_normal);
+        rec.mat = Some(self.mat.clone());
         true
+    }
+
+    fn box_clone(&self) -> Box<dyn Hittable> {
+        Box::new(self.clone())
     }
 }

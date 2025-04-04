@@ -1,10 +1,16 @@
-use minifb::{Key, Window, WindowOptions};
+use std::sync::Arc;
 
 use raytracer::scene::Scene;
 use raytracer::camera::Camera;
 
-const WIDTH: usize = 640;
-const HEIGHT: usize = 480;
+use raytracer::color::{Color};
+use raytracer::hittable_list::HittableList;
+use raytracer::sphere::Sphere;
+use raytracer::vec3::{Point3};
+use raytracer::material::{Lambertian, Metal};
+
+const WIDTH: usize = 256;
+const HEIGHT: usize = 256;
 
 fn main() {
     let aspect_ratio = WIDTH as f32 / HEIGHT as f32;
@@ -14,13 +20,33 @@ fn main() {
         camera: camera
     };
 
-    let mut window = Window::new("Scene", WIDTH, HEIGHT, WindowOptions::default())
-        .unwrap();
+    let mut world = HittableList::new();
+    let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
+    let material_center = Arc::new(Lambertian::new(Color::new(0.7, 0.3, 0.3)));
+    let material_left = Arc::new(Metal::new(Color::new(0.8, 0.8, 0.8), 0.3));
+    let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 1.0));
 
-    let frame = Scene::render_scene(&scene, WIDTH, HEIGHT);
+    world.add(Box::new(Sphere::new(
+        Point3::new(0.0, -100.5, -1.0),
+        100.0,
+        material_ground,
+    )));
+    world.add(Box::new(Sphere::new(
+        Point3::new(0.0, 0.0, -1.0),
+        0.5,
+        material_center,
+    )));
+    world.add(Box::new(Sphere::new(
+        Point3::new(-1.0, 0.0, -1.0),
+        0.5,
+        material_left,
+    )));
+    world.add(Box::new(Sphere::new(
+        Point3::new(1.0, 0.0, -1.0),
+        0.5,
+        material_right,
+    )));
 
-    while window.is_open() && !window.is_key_down(Key::Escape) {
-        window.update_with_buffer(&frame, WIDTH, HEIGHT).unwrap();
-    }
+    Scene::render_scene(&scene, world, WIDTH, HEIGHT);
 }
 

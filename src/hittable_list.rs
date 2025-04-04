@@ -1,7 +1,8 @@
+use std::sync::Arc;
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
  
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct HittableList {
     objects: Vec<Box<dyn Hittable>>,
 }
@@ -31,5 +32,20 @@ impl Hittable for HittableList {
         }
  
         hit_anything
+    }
+    
+    fn box_clone(&self) -> Box<dyn Hittable> {
+        let cloned_objects = self.objects.iter().map(|obj| obj.box_clone()).collect::<Vec<Box<dyn Hittable>>>();
+        Box::new(HittableList { objects: cloned_objects })
+    }
+}
+
+impl Hittable for Arc<dyn Hittable> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool {
+        (**self).hit(ray, t_min, t_max, rec)
+    }
+
+    fn box_clone(&self) -> Box<dyn Hittable> {
+        self.as_ref().box_clone()
     }
 }

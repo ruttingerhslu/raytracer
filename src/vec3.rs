@@ -48,6 +48,21 @@ impl Vec3 {
     pub fn length_squared(&self) -> f32 {
         self.e[0] * self.e[0] + self.e[1] * self.e[1] + self.e[2] * self.e[2]
     }
+
+    pub fn near_zero(&self) -> bool {
+        const EPS: f32 = 1.0e-8;
+        self.e[0].abs() < EPS && self.e[1].abs() < EPS && self.e[2].abs() < EPS
+    }
+
+    pub fn normalize(&self) -> Self {
+        let mag = (self.x() * self.x() + self.y() * self.y() + self.z() * self.z()).sqrt();
+        if mag == 0.0 {
+            return Self { e: [0.0, 0.0, 0.0] };
+        }
+        Self {
+            e: [self.x() / mag, self.y() / mag, self.z() / mag]
+        }
+    }
 }
  
 // Type alias
@@ -158,4 +173,22 @@ pub fn cross(u: Vec3, v: Vec3) -> Vec3 {
  
 pub fn unit_vector(v: Vec3) -> Vec3 {
     v / v.length()
+}
+
+pub fn random_in_unit_sphere() -> Vec3 {
+    loop {
+        let p = Vec3::random_range(-1.0, 1.0);
+        if p.length_squared() >= 1.0 {
+            continue;
+        }
+        return p;
+    }
+}
+
+pub fn random_unit_vector() -> Vec3 {
+    unit_vector(random_in_unit_sphere())
+}
+
+pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
+    v - 2.0 * dot(v, n) * n
 }

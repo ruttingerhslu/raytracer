@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::{self, Point3, Vec3};
  
@@ -5,8 +8,11 @@ use crate::vec3::{self, Point3, Vec3};
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,
+    pub mat: Option<Arc<dyn Material>>,
     pub t: f32,
     pub front_face: bool,
+    pub u: f32,
+    pub v: f32,
 }
  
 impl HitRecord {
@@ -26,4 +32,12 @@ impl HitRecord {
  
 pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool;
+
+    fn box_clone(&self) -> Box<dyn Hittable>;
+}
+
+impl Clone for Box<dyn Hittable> {
+    fn clone(&self) -> Box<dyn Hittable> {
+        self.box_clone()
+    }
 }
