@@ -1,28 +1,29 @@
-use crate::vector::Vector;
 use crate::ray::Ray;
-use crate::color::Color;
-use crate::light::Light;
-
-pub struct Material {
-    pub color: Color,       // Color of the material
-    pub ambient_intensity: f32, // How much ambient light the material receives
-    pub shininess: f32,     // Specular shininess value
-}
-
+use crate::vec3::{self, Point3, Vec3};
+ 
+#[derive(Clone, Default)]
 pub struct HitRecord {
-    pub point: Vector,
-    pub normal: Vector,
+    pub p: Point3,
+    pub normal: Vec3,
     pub t: f32,
+    pub front_face: bool,
 }
+ 
+impl HitRecord {
+    pub fn new() -> HitRecord {
+        Default::default()
+    }
 
-pub trait Hittable {
-    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
-
-    fn get_color_shade(
-        &self, point_q: Vector, 
-        light: &Light,
-        camera_point: Vector,
-    ) -> Color;
-
-    fn get_ambient(&self) -> Color;
+    pub fn set_face_normal(&mut self, r: &Ray, outward_normal: Vec3) {
+        self.front_face = vec3::dot(r.direction(), outward_normal) < 0.0;
+        self.normal = if self.front_face {
+            outward_normal
+        } else {
+            -outward_normal
+        };
+    }
+}
+ 
+pub trait Hittable: Send + Sync {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool;
 }

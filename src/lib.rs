@@ -1,9 +1,9 @@
-pub mod vector;
-pub mod ray;
 pub mod color;
-pub mod color_utils;
-pub mod light;
-pub mod hittable;
-pub mod sphere;
-pub mod plane;
 pub mod scene;
+pub mod ray;
+pub mod vec3;
+pub mod camera;
+pub mod common;
+pub mod hittable;
+pub mod hittable_list;
+pub mod sphere;
