@@ -71,24 +71,18 @@ impl Scene {
         }
 
         let num_lights = self.lights.len();
+        let mut total_light_contribution = Color::default();
         if num_lights > 0 {
-            let mut total_light_contribution = Color::default();
-
             // send shadow ray for each light source
             for light in &self.lights {
                 let shadow_origin = rec.point + rec.normal * 1e-3;
                 let shadow_dir = (light.center - rec.point).normalize();
                 let shadow_ray = Ray::new(shadow_origin, shadow_dir);
-                if self.is_occluded(&shadow_ray, light.center.distance(&rec.point)) {
-                    // shadow
-                    total_light_contribution = total_light_contribution + Color::default();
-                } else {
+                if !self.is_occluded(&shadow_ray, light.center.distance(&rec.point)) {
                     // shading
                     total_light_contribution = total_light_contribution + hittable.get_color_shade(rec.point, light, *camera_point);
                 }
             }
-            // divide for every light source
-            total_color = total_color + total_light_contribution * (1.0 / num_lights as f32);
         }
 
         let reflectivity = 0.5;
@@ -96,11 +90,17 @@ impl Scene {
             let reflected_color = self.handle_reflection(&ray, &rec, reflectivity);
             total_color = total_color + reflected_color;  // Scale reflection contribution
         }
+        // divide for every light source
+        total_color = total_color + total_light_contribution * (1.0 / num_lights as f32);
 
         return total_color.clamp();
     }
 
-    fn handle_reflection(&self, ray: &Ray, rec: &HitRecord, reflectivity: f32) -> Color {
+    fn handle_reflection(&self, ray: &Ray, rec: &HitRecord, depth: usize) -> Color {
+        if depth >= 10 {
+            return Color::default(); // no reflection past max depth
+        }
+
         let reflect_dir = ray.direction - rec.normal * (2.0 * ray.direction.dot(&rec.normal));
         let reflect_ray = Ray::new(rec.point + reflect_dir * 1e-4, reflect_dir);
 
