@@ -1,7 +1,7 @@
 use crate::color::Color;
-use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::vec3;
+use crate::hittable::HitRecord;
  
 pub trait Material: Send + Sync {
     fn scatter(
@@ -11,6 +11,10 @@ pub trait Material: Send + Sync {
         attenuation: &mut Color,
         scattered: &mut Ray,
     ) -> bool;
+
+    fn albedo(&self) -> Color {
+        Color::new(1.0, 1.0, 1.0) // default for non-colored materials
+    }
 }
 
 pub struct Lambertian {
@@ -41,6 +45,10 @@ impl Material for Lambertian {
         *scattered = Ray::new(rec.p, scatter_direction);
         true
     }
+
+    fn albedo(&self) -> Color {
+        self.albedo
+    }
 }
 
 pub struct Metal {
@@ -70,5 +78,9 @@ impl Material for Metal {
         *attenuation = self.albedo;
         *scattered = Ray::new(rec.p, reflected + self.fuzz * vec3::random_in_unit_sphere());
         vec3::dot(scattered.direction(), rec.normal) > 0.0
+    }
+
+    fn albedo(&self) -> Color {
+        self.albedo
     }
 }

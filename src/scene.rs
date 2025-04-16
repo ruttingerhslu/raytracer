@@ -6,12 +6,13 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::color::{self, Color};
-use crate::hittable::{HitRecord, Hittable};
-use crate::hittable_list::HittableList;
 use crate::vec3::{self};
 use crate::ray::Ray;
 use crate::camera::Camera;
 use crate::common;
+
+use crate::world::World;
+use crate::hittable::HitRecord;
 
 const SAMPLES_PER_PIXEL: i32 = 10;
 const MAX_DEPTH: i32 = 5;
@@ -21,13 +22,41 @@ pub struct Scene {
 }
 
 impl Scene {
-    fn ray_color(r: &Ray, world: &dyn Hittable, depth: i32) -> Color {
+    fn ray_color(r: &Ray, world: &World, depth: i32) -> Color {
         if depth <= 0 {
             return Color::new(0.0, 0.0, 0.0);
         }
 
         let mut rec = HitRecord::new();
         if world.hit(r, 0.001, common::INFINITY, &mut rec) {
+            let mut direct_light = Color::new(0.0, 0.0, 0.0);
+
+            for light in &world.lights {
+                let light_dir = (light.position() - rec.p).normalize();
+                let light_distance = (light.position() - rec.p).length();
+                let shadow_ray = Ray::new(rec.p, light_dir);
+                let mut shadow_rec = HitRecord::new();
+                let in_shadow = world.hit(&shadow_ray, 0.001, light_distance, &mut shadow_rec);
+
+                if !in_shadow {
+                    // Diffuse shading (Lambert)
+                    let diffuse_intensity = vec3::dot(light_dir, rec.normal).max(0.0);
+                    let diffuse = rec.mat.as_ref().unwrap().albedo() * diffuse_intensity;
+
+                    // Specular
+                    let view_dir = -r.direction().normalize();
+                    let reflect_dir = vec3::reflect(-light_dir, rec.normal).normalize();
+                    let spec_strength = vec3::dot(reflect_dir, view_dir).max(0.0).powf(32.0); // try 16–64
+                    let specular_color = Color::new(1.0, 1.0, 1.0); // white spec highlight
+                    let specular = specular_color * spec_strength;
+
+                    let contribution = (diffuse + specular) * light.intensity() * 0.2;
+                    direct_light += contribution;
+                }
+            }
+
+            // Recursive scattering (reflection, refraction, etc.)
+            let mut indirect_light = Color::new(0.0, 0.0, 0.0);
             let mut attenuation = Color::default();
             let mut scattered = Ray::default();
             if rec
@@ -36,9 +65,10 @@ impl Scene {
                 .unwrap()
                 .scatter(r, &rec, &mut attenuation, &mut scattered)
             {
-                return attenuation * Self::ray_color(&scattered, world, depth - 1);
+                indirect_light += attenuation * Self::ray_color(&scattered, world, depth - 1);
             }
-            return Color::new(0.0, 0.0, 0.0);
+
+            return direct_light * 1.2 + indirect_light * 0.8;
         }
 
         let unit_direction = vec3::unit_vector(r.direction());
@@ -46,7 +76,7 @@ impl Scene {
         (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0)
     }
 
-    pub fn render_scene(&self, world: HittableList, width: usize, height: usize) {
+    pub fn render_scene(&self, world: World, width: usize, height: usize) {
         let tmp_path = Path::new("output.tmp.ppm");
         let final_path = Path::new("output.ppm");
 

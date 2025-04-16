@@ -9,7 +9,7 @@ use crate::material::Material;
 pub struct Sphere {
     center: Point3,
     radius: f32,
-    mat: Arc<dyn Material + Send + Sync>,
+    mat: Arc<dyn Material>,
 }
  
 impl Sphere {
