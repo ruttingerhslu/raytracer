@@ -42,3 +42,11 @@ pub fn format_color(pixel_color: Color, samples_per_pixel: i32) -> String {
         (256.0 * common::clamp(b, 0.0, 0.999)) as i32,
     )
 }
+
+pub fn clamp_add(color1: &Color, color2: &Color) -> Color {
+    let r = (color1.x() + color2.x()).clamp(0.0, 1.0);
+    let g = (color1.y() + color2.y()).clamp(0.0, 1.0);
+    let b = (color1.z() + color2.z()).clamp(0.0, 1.0);
+    
+    Color::new(r, g, b)
+}

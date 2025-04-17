@@ -84,3 +84,72 @@ impl Material for Metal {
         self.albedo
     }
 }
+
+pub struct Glass {
+    albedo: Color,
+    refractive_index: f32,
+}
+
+impl Glass {
+    pub fn new(a: Color, ior: f32) -> Glass {
+        Glass {
+            albedo: a,
+            refractive_index: ior,
+        }
+    }
+}
+
+impl Material for Glass {
+    fn scatter(
+        &self,
+        r_in: &Ray,
+        rec: &HitRecord,
+        attenuation: &mut Color,
+        scattered: &mut Ray,
+    ) -> bool {
+        let incident = vec3::unit_vector(r_in.direction());
+        let mut normal = rec.normal;
+        let mut eta_i = 1.0;
+        let mut eta_t = self.refractive_index as f32;
+        let mut i_dot_n = vec3::dot(incident, normal);
+
+        if i_dot_n > 0.0 {
+            i_dot_n = -i_dot_n;
+        } else {
+            normal = -normal;
+            std::mem::swap(&mut eta_i, &mut eta_t);
+            i_dot_n = -i_dot_n;
+        }
+
+        let eta = eta_i / eta_t;
+        let k = 1.0 - eta * eta * (1.0 - i_dot_n * i_dot_n);
+
+        let reflect_prob = if k < 0.0 {
+            1.0
+        } else {
+            vec3::schlick(i_dot_n, eta_t)
+        };
+
+        let direction = if rand::random::<f32>() < reflect_prob {
+            vec3::reflect(incident, normal)
+        } else {
+            vec3::refract(incident, normal, eta)
+        };
+
+        let next_ior = if rec.front_face {
+            self.refractive_index
+        } else {
+            1.0
+        };
+
+        let absorption = Color::new(0.95, 0.95, 0.95);
+        *attenuation = absorption;
+        *scattered = Ray::with_ior(rec.p, direction, next_ior);
+        true
+    }
+
+    fn albedo(&self) -> Color {
+        self.albedo
+    }
+}
+

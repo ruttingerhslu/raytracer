@@ -15,7 +15,7 @@ use crate::world::World;
 use crate::hittable::HitRecord;
 
 const SAMPLES_PER_PIXEL: i32 = 10;
-const MAX_DEPTH: i32 = 5;
+const MAX_DEPTH: i32 = 10;
 
 pub struct Scene {
     pub camera: Camera,
@@ -46,11 +46,11 @@ impl Scene {
                     // Specular
                     let view_dir = -r.direction().normalize();
                     let reflect_dir = vec3::reflect(-light_dir, rec.normal).normalize();
-                    let spec_strength = vec3::dot(reflect_dir, view_dir).max(0.0).powf(32.0); // try 16–64
-                    let specular_color = Color::new(1.0, 1.0, 1.0); // white spec highlight
+                    let spec_strength = vec3::dot(reflect_dir, view_dir).max(0.0).powf(32.0);
+                    let specular_color = Color::new(1.0, 1.0, 1.0);
                     let specular = specular_color * spec_strength;
 
-                    let contribution = (diffuse + specular) * light.intensity() * 0.2;
+                    let contribution = (diffuse + specular) * light.intensity() * (1.0/world.lights.len() as f32);
                     direct_light += contribution;
                 }
             }
@@ -69,6 +69,7 @@ impl Scene {
             }
 
             return direct_light * 1.2 + indirect_light * 0.8;
+            // return direct_light * 1.0 + indirect_light * 1.0;
         }
 
         let unit_direction = vec3::unit_vector(r.direction());
