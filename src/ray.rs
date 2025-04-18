@@ -4,7 +4,7 @@ use crate::vec3::{Point3, Vec3};
 pub struct Ray {
     origin: Point3,
     direction: Vec3,
-    pub current_ior: f32, // index of retraction
+    current_ior: f32, // index of retraction
 }
 
 impl Ray {
@@ -30,6 +30,10 @@ impl Ray {
 
     pub fn direction(&self) -> Vec3 {
         self.direction
+    }
+
+    pub fn current_ior(&self) -> f32 {
+        self.current_ior
     }
 
     pub fn at(&self, t: f32) -> Point3 {

@@ -109,42 +109,32 @@ impl Material for Glass {
     ) -> bool {
         let incident = vec3::unit_vector(r_in.direction());
         let mut normal = rec.normal;
-        let mut eta_i = 1.0;
+        let mut eta_i = r_in.current_ior();
         let mut eta_t = self.refractive_index as f32;
-        let mut i_dot_n = vec3::dot(incident, normal);
+        let mut cos_theta = vec3::dot(-incident, normal);
 
-        if i_dot_n > 0.0 {
-            i_dot_n = -i_dot_n;
-        } else {
+        if cos_theta < 0.0 {
             normal = -normal;
             std::mem::swap(&mut eta_i, &mut eta_t);
-            i_dot_n = -i_dot_n;
+            cos_theta = vec3::dot(-incident, normal);
         }
 
         let eta = eta_i / eta_t;
-        let k = 1.0 - eta * eta * (1.0 - i_dot_n * i_dot_n);
-
-        let reflect_prob = if k < 0.0 {
+        let refracted = vec3::refract(incident, normal, eta);
+        let reflect_prob = if refracted.is_none() {
             1.0
         } else {
-            vec3::schlick(i_dot_n, eta_t)
+            vec3::schlick(cos_theta, eta_t)
         };
 
         let direction = if rand::random::<f32>() < reflect_prob {
             vec3::reflect(incident, normal)
         } else {
-            vec3::refract(incident, normal, eta)
+            refracted.unwrap()
         };
 
-        let next_ior = if rec.front_face {
-            self.refractive_index
-        } else {
-            1.0
-        };
-
-        let absorption = Color::new(0.95, 0.95, 0.95);
-        *attenuation = absorption;
-        *scattered = Ray::with_ior(rec.p, direction, next_ior);
+        *scattered = Ray::with_ior(rec.p, direction, if rec.front_face { self.refractive_index } else { 1.0 });
+        *attenuation = Color::new(1.0, 1.0, 1.0);
         true
     }
 

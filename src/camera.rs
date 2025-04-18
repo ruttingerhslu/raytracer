@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter, Result};
+
 use crate::vec3::{Point3, Vec3};
 use crate::ray::Ray;
 
@@ -29,10 +31,52 @@ impl Camera {
         }
     }
 
+    pub fn set_position(&mut self, position: Point3) {
+        self.origin = position;
+    }
+
     pub fn get_ray(&self, u: f32, v: f32) -> Ray {
         Ray::new(
             self.origin,
             self.lower_left_corner + u * self.horizontal + v * self.vertical - self.origin,
         )
+    }
+
+    pub fn from_gltf(position: Vec3, direction: Vec3, up: Vec3, fov_degrees: f32, aspect_ratio: f32) -> Self {
+        let theta = fov_degrees.to_radians();
+        let h = (theta / 2.0).tan();
+        let viewport_height = 2.0 * h;
+        let viewport_width = aspect_ratio * viewport_height;
+
+        let w = direction.normalize() * -1.0; // camera is looking -w
+        let u = up.cross(w).normalize();
+        let v = w.cross(u);
+
+        let origin = position;
+        let horizontal = u * viewport_width;
+        let vertical = v * viewport_height;
+        let lower_left_corner = origin - horizontal / 2.0 - vertical / 2.0 - w;
+
+        Camera {
+            origin,
+            lower_left_corner,
+            horizontal,
+            vertical,
+        }         
+    }
+
+    pub fn default() -> Self {
+        // Provide a default aspect ratio (e.g., 16:9)
+        let aspect_ratio = 16.0 / 9.0;
+        
+        // Create a camera using the default aspect ratio and other default parameters
+        Camera::new(aspect_ratio)
+    }
+}
+
+
+impl Display for Camera {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{}", self.origin)
     }
 }

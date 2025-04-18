@@ -1,3 +1,9 @@
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+use gltf::{self, Gltf, Semantic};
+use gltf::mesh::Semantic::Positions;
+
+use std::path::Path;
 use std::sync::Arc;
 
 use raytracer::scene::Scene;
@@ -5,9 +11,9 @@ use raytracer::camera::Camera;
 
 use raytracer::color::{Color};
 use raytracer::sphere::Sphere;
-use raytracer::triangle::{self};
+use raytracer::triangle::{self, Triangle};
 use raytracer::vec3::{Vec3, Point3};
-use raytracer::material::{Lambertian, Metal, Glass};
+use raytracer::material::{Material, Lambertian, Metal, Glass};
 
 use raytracer::world::World;
 use raytracer::light::Light;
@@ -17,8 +23,8 @@ const HEIGHT: usize = 512;
 
 fn main() {
     let aspect_ratio = WIDTH as f32 / HEIGHT as f32;
-    let camera = Camera::new(aspect_ratio);
-
+    let mut camera = Camera::new(aspect_ratio);
+    camera.set_position(Point3::new(0.0, 0.0, 0.0));
     let scene = Scene {
         camera: camera
     };
@@ -31,8 +37,9 @@ fn main() {
     let material_pink = Arc::new(Metal::new(Color::new(0.9, 0.9, 0.9), 0.3));
 
     // let material_glass = Arc::new(Glass::new(Color::new(0.7, 0.7, 0.7), 1.5));
-    let material_glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
-    let glass = Arc::new(Glass::new(Color::new(0.99, 0.99, 0.99), 1.5));
+    // let material_glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
+    let glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
+    let air = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.0));
 
     world.add_hittable(Box::new(Sphere::new(
         Point3::new(0.0, 0.0, -1.0),
@@ -43,7 +50,7 @@ fn main() {
     // world.add_hittable(Box::new(Sphere::new(
     //     Point3::new(0.0, 0.0, -1.0),
     //     0.45,
-    //     glass.clone(),
+    //     air.clone(),
     // )));
 
     world.add_hittable(Box::new(Sphere::new(
@@ -62,7 +69,7 @@ fn main() {
         material_right.clone(),
     )));
     // world.add_hittable(Box::new(Sphere::new(
-    //     Point3::new(1.0, 0.0, -3.0),
+    //     Point3::new(0.0, 0.1, -3.0),
     //     0.5,
     //     material_right.clone(),
     // )));

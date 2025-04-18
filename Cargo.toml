@@ -10,6 +10,11 @@ rayon = "1.10.0"
 toml = "0.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1.0"
+anyhow = "1.0"
+
+[dependencies.gltf]
+version = "1.4"
+features = ["extras", "names", "KHR_lights_punctual"]
 
 [lib]
 name = "raytracer"

@@ -67,6 +67,14 @@ impl Vec3 {
     pub fn dot(&self, other: &Vec3) -> f32 {
         dot(*self, *other)
     }
+
+    pub fn cross(&self, other: Vec3) -> Vec3 {
+        cross(*self, other)
+    }
+
+    pub fn unit_vector(&self) -> Vec3 {
+        unit_vector(*self)
+    }
 }
  
 // Type alias
@@ -197,11 +205,17 @@ pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
     v - 2.0 * dot(v, n) * n
 }
 
-pub fn refract(v: Vec3, n: Vec3, etai_over_etat: f32) -> Vec3 {
+pub fn refract(v: Vec3, n: Vec3, etai_over_etat: f32) -> Option<Vec3> {
     let cos_theta = f32::min(dot(-v, n), 1.0);
     let r_out_perp = etai_over_etat * (v + cos_theta * n);
-    let r_out_parallel = -(1.0 - r_out_perp.length_squared()).abs().sqrt() * n;
-    r_out_perp + r_out_parallel
+    let r_out_parallel_sq = 1.0 - r_out_perp.length_squared();
+
+    if r_out_parallel_sq < 0.0 {
+        None
+    } else {
+        let r_out_parallel = -r_out_parallel_sq.sqrt() * n;
+        Some(r_out_perp + r_out_parallel)
+    }
 }
 
 pub fn schlick(cosine: f32, ref_idx: f32) -> f32 {

@@ -30,6 +30,16 @@ impl Triangle {
             mat: mat
         }
     }
+
+    pub fn new_with_normal(p0: Vec3, p1: Vec3, p2: Vec3, normal: Vec3, mat: Arc<dyn Material>) -> Self {
+        Self {
+            p0: p0,
+            p1: p1,
+            p2: p2,
+            normal: normal,
+            mat: mat
+        }
+    }
 }
  
 impl Hittable for Triangle {
