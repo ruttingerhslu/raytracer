@@ -7,7 +7,7 @@ use crate::camera::Camera;
 use crate::world::World;
 use crate::color::Color;
 use crate::vec3::{Point3, Vec3};
-use crate::material::{Lambertian, Glass, Metal, SoapBubble}; 
+use crate::material::{Lambertian, Glass, Metal}; 
 use crate::triangle::{self};
 use crate::sphere::Sphere;
 use crate::light::Light;
@@ -27,19 +27,6 @@ pub async fn setup_scene(obj_path: &PathBuf, world: &mut World) -> Result<Camera
         material_ground,
     )));
 
-    // let soap = Arc::new(SoapBubble::new(1.33));
-    // let air = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.0));
-    // world.add_hittable(Box::new(Sphere::new(
-    //     Point3::new(0.7, 0.0, 1.0),
-    //     0.7,
-    //     soap.clone(),
-    // )));
-    // world.add_hittable(Box::new(Sphere::new(
-    //     Point3::new(0.7, 0.0, 1.0),
-    //     -0.69,
-    //     air,
-    // )));
-
     let rotation = Vec3::new(std::f32::consts::FRAC_PI_4, 0.0, std::f32::consts::FRAC_PI_4);
     for tri in triangle::cube(Point3::new(0.0, 0.0, -2.0), 0.6, rotation, metal.clone()) {
         world.add_hittable(Box::new(tri));
@@ -51,7 +38,7 @@ pub async fn setup_scene(obj_path: &PathBuf, world: &mut World) -> Result<Camera
     let light = Light::from_bounds(min, max, light_color);
     world.add_light(light);
 
-    let camera = Camera::from_bounds(min, max, WIDTH as f32 / HEIGHT as f32);
+    let camera = Camera::from_bounds(min, max, WIDTH as f32 / HEIGHT as f32, 45.0);
 
     Ok(camera)
 }

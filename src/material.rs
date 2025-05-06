@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use crate::color::Color;
 use crate::ray::Ray;
 use crate::vec3::{self, Vec3, Point3};
 use crate::hittable::HitRecord;
+use crate::texture::Texture;
  
 pub trait Material: Send + Sync {
     fn scatter(
@@ -144,57 +147,28 @@ impl Material for Glass {
     }
 }
 
-pub struct SoapBubble {
-    refractive_index: f32,
+pub struct TexturedMaterial {
+    texture: Arc<Texture>,
 }
 
-impl SoapBubble {
-    pub fn new(refractive_index: f32) -> Self {
-        Self { refractive_index }
+impl TexturedMaterial {
+    pub fn new(texture: Arc<Texture>) -> Self {
+        Self { texture }
     }
 }
 
-impl Material for SoapBubble {
+impl Material for TexturedMaterial {
     fn scatter(
         &self,
-        r_in: &Ray,
+        _r_in: &Ray,
         rec: &HitRecord,
         attenuation: &mut Color,
         scattered: &mut Ray,
     ) -> bool {
-        let incident = vec3::unit_vector(r_in.direction());
-        let mut normal = rec.normal;
-        let mut eta_i = r_in.current_ior();
-        let mut eta_t = self.refractive_index;
-        let mut cos_theta = vec3::dot(-incident, normal);
+        let scatter_direction = rec.normal + vec3::random_unit_vector();
 
-        if cos_theta < 0.0 {
-            normal = -normal;
-            std::mem::swap(&mut eta_i, &mut eta_t);
-            cos_theta = vec3::dot(-incident, normal);
-        }
-
-        let eta = eta_i / eta_t;
-        let refracted = vec3::refract(incident, normal, eta);
-        let reflect_prob = if refracted.is_none() {
-            1.0
-        } else {
-            vec3::schlick(cos_theta, eta_t)
-        };
-
-        let direction = if rand::random::<f32>() < reflect_prob {
-            vec3::reflect(incident, normal)
-        } else {
-            refracted.unwrap()
-        };
-
-        *scattered = Ray::with_ior(
-            rec.p,
-            direction,
-            if rec.front_face { self.refractive_index } else { 1.0 }
-        );
-
-        *attenuation = interference_color(cos_theta, rec.p, rec.normal);
+        *scattered = Ray::new(rec.p, scatter_direction);
+        *attenuation = self.texture.sample(rec.u, rec.v);
         true
     }
 
@@ -202,27 +176,3 @@ impl Material for SoapBubble {
         Color::new(1.0, 1.0, 1.0)
     }
 }
-
-fn interference_color(cos_theta: f32, position: Point3, normal: Vec3) -> Color {
-    let view_dir = -vec3::unit_vector(position); // Approximate view direction
-    let angle = vec3::dot(view_dir, normal).clamp(0.0, 1.0); // angle of incidence
-
-    // Use angle to vary film thickness (more thickness at glancing angles)
-    let angle_thickness_boost = 1.0 + (1.0 - angle) * 2.0;
-
-    // Simulate spatial thickness variation (e.g., due to surface imperfections)
-    let noise = 0.5 + 0.5 * (10.0 * position.x().sin() * position.y().cos());
-
-    // Effective optical path difference
-    let film_thickness = 0.3 * angle_thickness_boost * noise;
-
-    let phase = 2.0 * std::f32::consts::PI * film_thickness;
-
-    // Simple sine-based interference color (could use real wavelength math)
-    let r = 0.5 + 0.5 * (phase).sin();
-    let g = 0.5 + 0.5 * (phase * 1.3).sin();
-    let b = 0.5 + 0.5 * (phase * 1.7).sin();
-
-    Color::new(r, g, b)
-}
-

@@ -48,12 +48,28 @@ async fn main() -> Result<()> {
     };
 
     let (_tmp_dir, obj_path) = download_obj_with_assets(url).await?;
-    let mut world = World::new();
-    let camera = custom_scene::setup_custom_scene(&obj_path, &mut world).await?;
-    // let camera = required_scene::setup_scene(&obj_path, &mut world).await?;
+    // let mut world = World::new();
+    // let camera = custom_scene::setup_custom_scene(&obj_path, &mut world).await?;
+    // // let camera = required_scene::setup_scene(&obj_path, &mut world).await?;
+    //
+    // let scene = Scene { camera };
+    // Scene::render_scene(&scene, world, WIDTH, HEIGHT);
+    const NUM_FRAMES: usize = 60;
 
-    let scene = Scene { camera };
-    Scene::render_scene(&scene, world, WIDTH, HEIGHT);
+    for frame in 0..NUM_FRAMES {
+        let angle = frame as f32 / NUM_FRAMES as f32 * std::f32::consts::TAU; // full rotation
+
+        // Setup scene for this frame
+        let mut world = World::new();
+
+        // You pass in the angle to rotate the camera or object
+        let camera = custom_scene::setup_custom_scene(&obj_path, &mut world, angle).await?;
+
+        let scene = Scene { camera };
+
+        let filename = format!("frame_{:03}", frame);
+        Scene::render_scene_to_file(&scene, world, WIDTH, HEIGHT, &filename);
+    }
 
     Ok(())
 }

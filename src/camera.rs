@@ -54,11 +54,16 @@ impl Camera {
         }
     }
 
-    pub fn from_bounds(min: Point3, max: Point3, aspect_ratio: f32) -> Self {
+    pub fn from_bounds(min: Point3, max: Point3, aspect_ratio: f32, angle: f32) -> Self {
         let center = (min + max) * 0.5;
         let diagonal = (max - min).length();
-        let distance = diagonal * 1.5;
-        let lookfrom = center + Vec3::new(distance, distance * 0.5, distance);
+        let radius = diagonal * 1.5;
+
+        let x = radius * angle.cos();
+        let z = radius * angle.sin();
+        let y = diagonal * 0.5;
+
+        let lookfrom = center + Vec3::new(x, y, z);
         let lookat = center;
         let vup = Vec3::new(0.0, 1.0, 0.0);
 
@@ -82,7 +87,7 @@ impl Camera {
         let viewport_height = 2.0 * h;
         let viewport_width = aspect_ratio * viewport_height;
 
-        let w = direction.normalize() * -1.0; // camera is looking -w
+        let w = direction.normalize() * -1.0;
         let u = up.cross(w).normalize();
         let v = w.cross(u);
 
@@ -100,10 +105,8 @@ impl Camera {
     }
 
     pub fn default() -> Self {
-        // Provide a default aspect ratio (e.g., 16:9)
         let aspect_ratio = 16.0 / 9.0;
         
-        // Create a camera using the default aspect ratio and other default parameters
         Camera::new(aspect_ratio)
     }
 }

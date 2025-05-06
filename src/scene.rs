@@ -4,6 +4,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::fs::create_dir_all; 
 
 use crate::color::{self, Color};
 use crate::vec3::{self};
@@ -124,5 +125,58 @@ impl Scene {
         rename(tmp_path, final_path).expect("Failed to rename temp file");
         eprint!("\nDone. Image saved to output.ppm\n");
     }
-}
+
+    pub fn render_scene_to_file(&self, world: World, width: usize, height: usize, filename: &str) {
+            let output_dir = Path::new("animation");
+            create_dir_all(output_dir).expect("Failed to create output directory");
+
+            let tmp_path = output_dir.join(format!("{filename}.tmp"));
+            let final_path = output_dir.join(format!("{filename}.ppm"));
+
+            let file = File::create(&tmp_path).expect("Failed to create temp file");
+            let mut writer = BufWriter::new(file);
+
+            writeln!(writer, "P3").expect("Failed to write PPM header");
+            writeln!(writer, "{} {}", width, height).expect("Failed to write dimensions");
+            writeln!(writer, "255").expect("Failed to write max color value");
+
+            let camera = Arc::new(self.camera.clone());
+            let world = Arc::new(world);
+            let progress = Arc::new(AtomicUsize::new(0));
+
+            let pixel_data: Vec<String> = (0..height)
+                .into_par_iter()
+                .rev()
+                .map(|j| {
+                    let progress = Arc::clone(&progress);
+                    let mut scanline = Vec::with_capacity(width);
+                    for i in 0..width {
+                        let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+                        for _ in 0..SAMPLES_PER_PIXEL {
+                            let mod_x = i as f32 + common::random_double();
+                            let mod_y = j as f32 + common::random_double();
+                            let u = mod_x / (width - 1) as f32;
+                            let v = mod_y / (height - 1) as f32;
+                            let r = camera.get_ray(u, v);
+                            pixel_color += Self::ray_color(&r, &*world, MAX_DEPTH);
+                        }
+                        scanline.push(color::format_color(pixel_color, SAMPLES_PER_PIXEL));
+                    }
+                    let completed = progress.fetch_add(1, Ordering::Relaxed);
+                    eprint!("\rScanlines completed: {}/{}", completed + 1, height);
+                    scanline
+                })
+                .flatten()
+                .collect();
+
+            for line in &pixel_data {
+                writeln!(writer, "{}", line).expect("Failed to write pixel");
+            }
+
+            writer.flush().expect("Failed to flush buffer");
+            std::fs::rename(tmp_path, &&final_path).expect("Failed to rename temp file");
+
+            eprint!("\nFrame saved: {}\n", final_path.display());
+        }
+    }
 
