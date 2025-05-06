@@ -1,5 +1,5 @@
 use crate::color::Color;
-use crate::vec3::Point3;
+use crate::vec3::{Point3, Vec3};
 
 pub struct Light {
     p: Point3,
@@ -11,6 +11,19 @@ impl Light {
         Self {
             p: p,
             intensity: intensity,
+        }
+    }
+
+    pub fn from_bounds(min: Point3, max: Point3, intensity: Color) -> Self {
+        let center = (min + max) * 0.5;
+        let diagonal = (max - min).length();
+        let offset = Vec3::new(-diagonal, diagonal, diagonal);
+
+        let position = center + offset;
+
+        Self {
+            p: position,
+            intensity: intensity
         }
     }
 

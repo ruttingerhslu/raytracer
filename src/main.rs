@@ -1,93 +1,59 @@
-#![allow(unused_imports)]
-#![allow(unused_variables)]
-use gltf::{self, Gltf, Semantic};
-use gltf::mesh::Semantic::Positions;
+#![allow(unused)]
 
-use std::path::Path;
-use std::sync::Arc;
+mod asset_loader;
+
+use anyhow::{Result};
+use std::collections::HashMap;
+use std::fs;
+use clap::Parser;
+use serde::Deserialize;
+
+use raytracer::scenes::custom_scene;
+use raytracer::scenes::required_scene;
 
 use raytracer::scene::Scene;
-use raytracer::camera::Camera;
-
-use raytracer::color::{Color};
-use raytracer::sphere::Sphere;
-use raytracer::triangle::{self, Triangle};
-use raytracer::vec3::{Vec3, Point3};
-use raytracer::material::{Material, Lambertian, Metal, Glass};
-
-use raytracer::world::World;
-use raytracer::light::Light;
+use raytracer::world::World; use asset_loader::download_obj_with_assets;
 
 const WIDTH: usize = 512;
 const HEIGHT: usize = 512;
 
-fn main() {
-    let aspect_ratio = WIDTH as f32 / HEIGHT as f32;
-    let mut camera = Camera::new(aspect_ratio);
-    camera.set_position(Point3::new(0.0, 0.0, 0.0));
-    let scene = Scene {
-        camera: camera
-    };
+#[derive(Parser)]
+struct Args {
+    #[arg(short, long)]
+    model: String,
 
-    let mut world = World::new();
-    let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
-    // let material_center = Arc::new(Lambertian::new(Color::new(0.7, 0.3, 0.3)));
-    let material_left = Arc::new(Metal::new(Color::new(0.8, 0.8, 0.8), 0.3));
-    let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 1.0));
-    let material_pink = Arc::new(Metal::new(Color::new(0.9, 0.9, 0.9), 0.3));
-
-    // let material_glass = Arc::new(Glass::new(Color::new(0.7, 0.7, 0.7), 1.5));
-    // let material_glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
-    let glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
-    let air = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.0));
-
-    world.add_hittable(Box::new(Sphere::new(
-        Point3::new(0.0, 0.0, -1.0),
-        0.5,
-        glass.clone(),
-    )));
-
-    // world.add_hittable(Box::new(Sphere::new(
-    //     Point3::new(0.0, 0.0, -1.0),
-    //     0.45,
-    //     air.clone(),
-    // )));
-
-    world.add_hittable(Box::new(Sphere::new(
-        Point3::new(0.0, -100.5, -1.0),
-        100.0,
-        material_ground,
-    )));
-    world.add_hittable(Box::new(Sphere::new(
-        Point3::new(-1.0, 0.0, -1.0),
-        0.5,
-        material_left,
-    )));
-    world.add_hittable(Box::new(Sphere::new(
-        Point3::new(1.0, 0.0, -1.0),
-        0.5,
-        material_right.clone(),
-    )));
-    // world.add_hittable(Box::new(Sphere::new(
-    //     Point3::new(0.0, 0.1, -3.0),
-    //     0.5,
-    //     material_right.clone(),
-    // )));
-
-    let rotation = Vec3::new(std::f32::consts::FRAC_PI_4, 0.0, std::f32::consts::FRAC_PI_4);
-    for tri in triangle::cube(Point3::new(-0.3, 0.0, -0.6), 0.3, rotation, material_pink.clone()) {
-        world.add_hittable(Box::new(tri));
-    }
-
-    let rotation2 = Vec3::new(0.0, std::f32::consts::FRAC_PI_4, std::f32::consts::FRAC_PI_4);
-    for tri in triangle::cube(Point3::new(-0.1, 0.1, -0.5), 0.2, rotation2, material_pink.clone()) {
-        world.add_hittable(Box::new(tri));
-    }
-
-    let light_color = Color::new(0.5, 0.5, 0.5);
-    world.add_light(Light::new(Point3::new(-1.0, 0.0, 1.0), light_color));
-    world.add_light(Light::new(Point3::new(1.0, 0.0, 0.5), light_color));
-
-    Scene::render_scene(&scene, world, WIDTH, HEIGHT);
+    #[arg(short, long, default_value = "config.toml")]
+    config: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct Config {
+    models: HashMap<String, String>,
+}
+
+fn load_config(path: &str) -> anyhow::Result<Config> {
+    let content = fs::read_to_string(path)?;
+    let config: Config = toml::from_str(&content)?;
+    Ok(config)
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let args = Args::parse();
+    let config = load_config(&args.config)?;
+
+    let Some(url) = config.models.get(&args.model) else {
+        eprintln!("Model '{}' not found in config", args.model);
+        std::process::exit(1);
+    };
+
+    let (_tmp_dir, obj_path) = download_obj_with_assets(url).await?;
+    let mut world = World::new();
+    let camera = custom_scene::setup_custom_scene(&obj_path, &mut world).await?;
+    // let camera = required_scene::setup_scene(&obj_path, &mut world).await?;
+
+    let scene = Scene { camera };
+    Scene::render_scene(&scene, world, WIDTH, HEIGHT);
+
+    Ok(())
+}

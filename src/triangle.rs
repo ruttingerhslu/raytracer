@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
-use crate::vec3::{self, Vec3, Point3, dot};
+use crate::vec3::{self, Vec3, dot, Point3};
 use crate::material::Material;
 
 #[derive(Clone)]
@@ -10,12 +10,19 @@ pub struct Triangle {
     p0: Vec3, // startposition
     p1: Vec3, // endposition 1
     p2: Vec3, // endposition 2
+    uv0: (f32, f32),
+    uv1: (f32, f32),
+    uv2: (f32, f32),
     normal: Vec3,
     mat: Arc<dyn Material>,
 }
  
 impl Triangle {
-    pub fn new(p0: Vec3, p1: Vec3, p2: Vec3, mat: Arc<dyn Material>) -> Self {
+    pub fn new(
+        p0: Vec3, p1: Vec3, p2: Vec3, 
+        uv0: (f32, f32), uv1: (f32, f32), uv2: (f32, f32),
+        mat: Arc<dyn Material>
+    ) -> Self {
         let mut normal = vec3::cross(p1 - p0, p2 - p0);
 
         if dot(normal, Vec3::new(0.0, 0.0, 1.0)) < 0.0 {
@@ -26,69 +33,40 @@ impl Triangle {
             p0: p0,
             p1: p1,
             p2: p2,
+            uv0: uv0,
+            uv1: uv1,
+            uv2: uv2,
             normal: normal,
             mat: mat
         }
     }
 
-    pub fn new_with_normal(p0: Vec3, p1: Vec3, p2: Vec3, normal: Vec3, mat: Arc<dyn Material>) -> Self {
+    pub fn new_with_normal(
+        p0: Vec3, p1: Vec3, p2: Vec3,
+        uv0: (f32, f32), uv1: (f32, f32), uv2: (f32, f32),
+        normal: Vec3, mat: Arc<dyn Material>
+    ) -> Self {
         Self {
             p0: p0,
             p1: p1,
             p2: p2,
+            uv0: uv0,
+            uv1: uv1,
+            uv2: uv2,
             normal: normal,
             mat: mat
         }
     }
+
+    pub fn new_untextured(
+        p0: Vec3, p1: Vec3, p2: Vec3,
+        mat: Arc<dyn Material>
+    ) -> Self {
+        Self::new(p0, p1, p2, (0.0, 0.0), (0.0, 0.0), (0.0, 0.0), mat)
+    }
 }
  
 impl Hittable for Triangle {
-    // // moller trombone intersection
-    // fn hit(&self, r: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool {
-    //     let v0 = self.p0;
-    //     let v1 = self.p1;
-    //     let v2 = self.p2;
-    //
-    //     let e1 = v1 - v0;
-    //     let e2 = v2 - v0;
-    //
-    //     let pvec = vec3::cross(r.direction(), e2);
-    //     let det = vec3::dot(e1, pvec);
-    //
-    //     if det.abs() < 1e-8 {
-    //         return false;
-    //     }
-    //
-    //     let inv_det = 1.0 / det;
-    //     let tvec = r.origin() - v0;
-    //
-    //     let u = vec3::dot(tvec, pvec) * inv_det;
-    //     if u < 0.0 || u > 1.0 {
-    //         return false;
-    //     }
-    //
-    //     let qvec = vec3::cross(tvec, e1);
-    //     let v = vec3::dot(r.direction(), qvec) * inv_det;
-    //     if v < 0.0 || u + v > 1.0 {
-    //         return false;
-    //     }
-    //
-    //     let t = vec3::dot(e2, qvec) * inv_det;
-    //     if t < t_min || t > t_max {
-    //         return false;
-    //     }
-    //
-    //     rec.t = t;
-    //     rec.p = r.at(t);
-    //     rec.normal = self.normal;
-    //     rec.mat = Some(self.mat.clone());
-    //     rec.u = u;
-    //     rec.v = v;
-    //     rec.set_face_normal(r, self.normal.normalize());
-    //
-    //     true
-    // }
-
     // barycentric method
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool {
         let denom = dot(ray.direction(), self.normal);
@@ -120,11 +98,23 @@ impl Hittable for Triangle {
         if lambda < 0.0 || mu < 0.0 || (lambda + mu) > 1.0 {
             return false;
         }
+        let w = 1.0 - lambda - mu;
+        let (u_0, v_0) = self.uv0;
+        let (u_1, v_1) = self.uv1;
+        let (u_2, v_2) = self.uv2;
 
+        let u = u_0 * w + u_1 * lambda + u_2 * mu;
+        let v = v_0 * w + v_1 * lambda + v_2 * mu;
+
+        // println!("UV0: {:?}, UV1: {:?}, UV2: {:?}", self.uv0, self.uv1, self.uv2);
+        rec.u = u;
+        rec.v = v;
         rec.t = t;
         rec.p = hit_point;
-        rec.normal = self.normal;
-        rec.set_face_normal(ray, self.normal.normalize());
+        let edge1 = self.p1 - self.p0;
+        let edge2 = self.p2 - self.p0;
+        let normal = vec3::cross(edge1, edge2).normalize();
+        rec.set_face_normal(ray, normal);
         rec.mat = Some(self.mat.clone());
         true
     }
@@ -189,23 +179,23 @@ pub fn cube(center: Point3, size: f32, rotation: Vec3, mat: Arc<dyn Material>) -
 
     let mut tris = vec![];
 
-    tris.push(Triangle::new(p001, p101, p111, mat.clone()));
-    tris.push(Triangle::new(p001, p111, p011, mat.clone()));
+    tris.push(Triangle::new_untextured(p001, p101, p111, mat.clone()));
+    tris.push(Triangle::new_untextured(p001, p111, p011, mat.clone()));
 
-    tris.push(Triangle::new(p100, p000, p010, mat.clone()));
-    tris.push(Triangle::new(p100, p010, p110, mat.clone()));
+    tris.push(Triangle::new_untextured(p100, p000, p010, mat.clone()));
+    tris.push(Triangle::new_untextured(p100, p010, p110, mat.clone()));
 
-    tris.push(Triangle::new(p000, p001, p011, mat.clone()));
-    tris.push(Triangle::new(p000, p011, p010, mat.clone()));
+    tris.push(Triangle::new_untextured(p000, p001, p011, mat.clone()));
+    tris.push(Triangle::new_untextured(p000, p011, p010, mat.clone()));
 
-    tris.push(Triangle::new(p101, p100, p110, mat.clone()));
-    tris.push(Triangle::new(p101, p110, p111, mat.clone()));
+    tris.push(Triangle::new_untextured(p101, p100, p110, mat.clone()));
+    tris.push(Triangle::new_untextured(p101, p110, p111, mat.clone()));
 
-    tris.push(Triangle::new(p010, p011, p111, mat.clone()));
-    tris.push(Triangle::new(p010, p111, p110, mat.clone()));
+    tris.push(Triangle::new_untextured(p010, p011, p111, mat.clone()));
+    tris.push(Triangle::new_untextured(p010, p111, p110, mat.clone()));
 
-    tris.push(Triangle::new(p000, p100, p101, mat.clone()));
-    tris.push(Triangle::new(p000, p101, p001, mat.clone()));
+    tris.push(Triangle::new_untextured(p000, p100, p101, mat.clone()));
+    tris.push(Triangle::new_untextured(p000, p101, p001, mat.clone()));
 
     tris
 }

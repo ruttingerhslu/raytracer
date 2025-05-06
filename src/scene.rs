@@ -69,7 +69,6 @@ impl Scene {
             }
 
             return direct_light * 1.2 + indirect_light * 0.8;
-            // return direct_light * 1.0 + indirect_light * 1.0;
         }
 
         let unit_direction = vec3::unit_vector(r.direction());

@@ -31,6 +31,40 @@ impl Camera {
         }
     }
 
+    pub fn perspective(lookfrom: Point3, lookat: Point3, vup: Vec3, vfov_deg: f32, aspect_ratio: f32) -> Self {
+        let theta = vfov_deg.to_radians();
+        let h = (theta / 2.0).tan();
+        let viewport_height = 2.0 * h;
+        let viewport_width = aspect_ratio * viewport_height;
+
+        let w = (lookfrom - lookat).normalize();
+        let u = vup.cross(w).normalize();
+        let v = w.cross(u);
+
+        let origin = lookfrom;
+        let horizontal = viewport_width * u;
+        let vertical = viewport_height * v;
+        let lower_left_corner = origin - horizontal / 2.0 - vertical / 2.0 - w;
+
+        Self {
+            origin,
+            lower_left_corner,
+            horizontal,
+            vertical,
+        }
+    }
+
+    pub fn from_bounds(min: Point3, max: Point3, aspect_ratio: f32) -> Self {
+        let center = (min + max) * 0.5;
+        let diagonal = (max - min).length();
+        let distance = diagonal * 1.5;
+        let lookfrom = center + Vec3::new(distance, distance * 0.5, distance);
+        let lookat = center;
+        let vup = Vec3::new(0.0, 1.0, 0.0);
+
+        Self::perspective(lookfrom, lookat, vup, 45.0, aspect_ratio)
+    }
+
     pub fn set_position(&mut self, position: Point3) {
         self.origin = position;
     }
