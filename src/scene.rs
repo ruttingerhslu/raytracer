@@ -1,182 +1,182 @@
-use rayon::prelude::*;
-use std::fs::{File, rename};
-use std::io::{BufWriter, Write};
-use std::path::Path;
+use anyhow::{Result};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::fs::create_dir_all; 
+use std::path::PathBuf;
+use async_trait::async_trait;
 
-use crate::color::{self, Color};
-use crate::vec3::{self};
-use crate::ray::Ray;
 use crate::camera::Camera;
-use crate::common;
-
 use crate::world::World;
-use crate::hittable::HitRecord;
+use crate::color::Color;
+use crate::vec3::{Point3, Vec3};
+use crate::material::{Lambertian, Glass, Metal, TexturedMaterial}; 
+use crate::texture::Texture;
+use crate::triangle::{self, Triangle};
+use crate::sphere::Sphere;
+use crate::light::Light;
+use crate::obj;
 
-const SAMPLES_PER_PIXEL: i32 = 10;
-const MAX_DEPTH: i32 = 10;
+const WIDTH: usize = 512;
+const HEIGHT: usize = 512;
 
-pub struct Scene {
-    pub camera: Camera,
+#[async_trait]
+pub trait Scene: Send + Sync {
+    async fn setup(
+        &self,
+        obj_path: &PathBuf,
+        world: &mut World,
+        angle: f32,
+    ) -> Result<Camera>;
 }
 
-impl Scene {
-    fn ray_color(r: &Ray, world: &World, depth: i32) -> Color {
-        if depth <= 0 {
-            return Color::new(0.0, 0.0, 0.0);
-        }
+pub struct CustomScene;
+pub struct RequiredScene;
+pub struct MuseumScene;
 
-        let mut rec = HitRecord::new();
-        if world.hit(r, 0.001, common::INFINITY, &mut rec) {
-            let mut direct_light = Color::new(0.0, 0.0, 0.0);
+#[async_trait]
+impl Scene for CustomScene {
+    async fn setup(
+        &self,
+        obj_path: &PathBuf,
+        world: &mut World,
+        angle: f32,
+    ) -> Result<Camera> {
+            let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
+            let material_center = Arc::new(Lambertian::new(Color::new(0.7, 0.3, 0.3)));
+            let glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
+            let metal = Arc::new(Metal::new(Color::new(0.9, 0.9, 0.9), 0.3));
 
-            for light in &world.lights {
-                let light_dir = (light.position() - rec.p).normalize();
-                let light_distance = (light.position() - rec.p).length();
-                let shadow_ray = Ray::new(rec.p, light_dir);
-                let mut shadow_rec = HitRecord::new();
-                let in_shadow = world.hit(&shadow_ray, 0.001, light_distance, &mut shadow_rec);
+            // text wall
+            let img = image::open("text.png")?.to_rgba8();
+            let texture = Arc::new(Texture::new(img));
+            let mat = Arc::new(TexturedMaterial::new(texture));
+            let aspect_ratio = 3103.0 / 479.0;
+            let half_width = aspect_ratio / 2.0;
+            let half_height = 0.5;
+            let offset_x = 0.0;
+            let offset_y = 0.0;
+            let offset_z = -1.5;
+            let v0 = Point3::new(-half_width + offset_x, -half_height + offset_y, offset_z);
+            let v1 = Point3::new( half_width + offset_x, -half_height + offset_y, offset_z);
+            let v2 = Point3::new(-half_width + offset_x,  half_height + offset_y, offset_z);
+            let v3 = Point3::new( half_width + offset_x,  half_height + offset_y, offset_z);
+            let uv0 = (0.0, 0.0);
+            let uv1 = (1.0, 0.0);
+            let uv2 = (0.0, 1.0);
+            let uv3 = (1.0, 1.0);
+            world.add_hittable(Box::new(Triangle::new(
+                v0, v1, v3,
+                uv0, uv1, uv3,
+                mat.clone()
+            )));
+            world.add_hittable(Box::new(Triangle::new(
+                v0, v3, v2,
+                uv0, uv3, uv2,
+                mat
+            )));
 
-                if !in_shadow {
-                    // Diffuse shading (Lambert)
-                    let diffuse_intensity = vec3::dot(light_dir, rec.normal).max(0.0);
-                    let diffuse = rec.mat.as_ref().unwrap().albedo() * diffuse_intensity;
+            // world sphere (ground)
+            world.add_hittable(Box::new(Sphere::new(
+                Point3::new(0.0, -100.5, -1.0),
+                100.0,
+                material_ground,
+            )));
+            // sphere example 
+            world.add_hittable(Box::new(Sphere::new(
+                Point3::new(0.0, 0.0, -1.0),
+                0.5,
+                material_center,
+            )));
 
-                    // Specular
-                    let view_dir = -r.direction().normalize();
-                    let reflect_dir = vec3::reflect(-light_dir, rec.normal).normalize();
-                    let spec_strength = vec3::dot(reflect_dir, view_dir).max(0.0).powf(32.0);
-                    let specular_color = Color::new(1.0, 1.0, 1.0);
-                    let specular = specular_color * spec_strength;
-
-                    let contribution = (diffuse + specular) * light.intensity() * (1.0/world.lights.len() as f32);
-                    direct_light += contribution;
-                }
+            // rotated cube
+            let rotation = Vec3::new(std::f32::consts::FRAC_PI_4, 0.0, std::f32::consts::FRAC_PI_4);
+            for tri in triangle::cube(Point3::new(0.0, 0.0, -2.0), 0.6, rotation, metal.clone()) {
+                world.add_hittable(Box::new(tri));
             }
 
-            // Recursive scattering (reflection, refraction, etc.)
-            let mut indirect_light = Color::new(0.0, 0.0, 0.0);
-            let mut attenuation = Color::default();
-            let mut scattered = Ray::default();
-            if rec
-                .mat
-                .as_ref()
-                .unwrap()
-                .scatter(r, &rec, &mut attenuation, &mut scattered)
-            {
-                indirect_light += attenuation * Self::ray_color(&scattered, world, depth - 1);
+            // loaded object
+            let (min, max) = obj::load_obj_from_path(obj_path, world, glass).await?;
+
+            // light
+            let light_color = Color::new(0.9, 0.9, 0.9);
+            let light = Light::from_bounds(min, max, light_color);
+            world.add_light(light);
+
+            let camera = Camera::from_bounds(min, max, WIDTH as f32 / HEIGHT as f32, angle);
+
+            Ok(camera)
+    }
+}
+
+#[async_trait]
+impl Scene for MuseumScene {
+    async fn setup(
+        &self,
+        obj_path: &PathBuf,
+        world: &mut World,
+        angle: f32,
+    ) -> Result<Camera> {
+            let glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
+
+            // Load object and get bounds
+            let (min, max) = obj::load_obj_from_path(obj_path, world, glass.clone()).await?;
+
+            // Define glass display case slightly larger than object bounds
+            let padding = 0.05;
+            let case_min = min - Vec3::new(padding, padding, padding);
+            let case_max = max + Vec3::new(padding, padding, padding);
+            let center = (case_min + case_max) / 2.0;
+            let size = case_max - case_min;
+
+            // Create glass cube around the object
+            for tri in triangle::cube(center, size.x().max(size.y()).max(size.z()), Vec3::new(0.0, 0.0, 0.0), glass.clone()) {
+                world.add_hittable(Box::new(tri));
             }
 
-            return direct_light * 1.2 + indirect_light * 0.8;
-        }
+            // Add a light source above the case
+            let light_height = case_max.y() + 0.3;
+            let light_min = Point3::new(case_min.x(), light_height, case_min.z());
+            let light_max = Point3::new(case_max.x(), light_height + 0.01, case_max.z());
+            let light_color = Color::new(1.0, 1.0, 1.0);
+            let light = Light::from_bounds(light_min, light_max, light_color);
+            world.add_light(light);
 
-        let unit_direction = vec3::unit_vector(r.direction());
-        let t = 0.5 * (unit_direction.y() + 1.0);
-        (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0)
+            // Setup camera to frame the display case
+            let camera = Camera::from_bounds(case_min, case_max, WIDTH as f32 / HEIGHT as f32, angle);
+
+            Ok(camera)
     }
+}
 
-    pub fn render_scene(&self, world: World, width: usize, height: usize) {
-        let tmp_path = Path::new("output.tmp.ppm");
-        let final_path = Path::new("output.ppm");
+#[async_trait]
+impl Scene for RequiredScene {
+    async fn setup(
+        &self,
+        obj_path: &PathBuf,
+        world: &mut World,
+        angle: f32,
+    ) -> Result<Camera> {
+            let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
+            let glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
+            let metal = Arc::new(Metal::new(Color::new(0.9, 0.9, 0.9), 0.3));
 
-        let file = File::create(&tmp_path).expect("Failed to create temp file");
-        let mut writer = BufWriter::new(file);
+            world.add_hittable(Box::new(Sphere::new(
+                Point3::new(0.0, -100.5, -1.0),
+                100.0,
+                material_ground,
+            )));
 
-        writeln!(writer, "P3").expect("Failed to write PPM header");
-        writeln!(writer, "{} {}", width, height).expect("Failed to write dimensions");
-        writeln!(writer, "255").expect("Failed to write max color value");
-
-        let camera = Arc::new(self.camera.clone());
-        let world = Arc::new(world);
-        let progress = Arc::new(AtomicUsize::new(0));
-
-        let pixel_data: Vec<String> = (0..height)
-            .into_par_iter()
-            .rev()
-            .map(|j| {
-                let progress = Arc::clone(&progress);
-                let mut scanline = Vec::with_capacity(width);
-                for i in 0..width {
-                    let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-                    for _ in 0..SAMPLES_PER_PIXEL {
-                        let mod_x = i as f32 + common::random_double();
-                        let mod_y = j as f32 + common::random_double();
-                        let u = mod_x / (width - 1) as f32;
-                        let v = mod_y / (height - 1) as f32;
-                        let r = camera.get_ray(u, v);
-                        pixel_color += Self::ray_color(&r, &*world, MAX_DEPTH);
-                    }
-                    scanline.push(color::format_color(pixel_color, SAMPLES_PER_PIXEL));
-                }
-                let completed = progress.fetch_add(1, Ordering::Relaxed);
-                eprint!("\rScanlines completed: {}/{}", completed + 1, height);
-                scanline
-            })
-            .flatten()
-            .collect();
-
-        for line in &pixel_data {
-            writeln!(writer, "{}", line).expect("Failed to write pixel");
-        }
-
-        writer.flush().expect("Failed to flush buffer");
-        rename(tmp_path, final_path).expect("Failed to rename temp file");
-        eprint!("\nDone. Image saved to output.ppm\n");
-    }
-
-    pub fn render_scene_to_file(&self, world: World, width: usize, height: usize, filename: &str) {
-            let output_dir = Path::new("animation");
-            create_dir_all(output_dir).expect("Failed to create output directory");
-
-            let tmp_path = output_dir.join(format!("{filename}.tmp"));
-            let final_path = output_dir.join(format!("{filename}.ppm"));
-
-            let file = File::create(&tmp_path).expect("Failed to create temp file");
-            let mut writer = BufWriter::new(file);
-
-            writeln!(writer, "P3").expect("Failed to write PPM header");
-            writeln!(writer, "{} {}", width, height).expect("Failed to write dimensions");
-            writeln!(writer, "255").expect("Failed to write max color value");
-
-            let camera = Arc::new(self.camera.clone());
-            let world = Arc::new(world);
-            let progress = Arc::new(AtomicUsize::new(0));
-
-            let pixel_data: Vec<String> = (0..height)
-                .into_par_iter()
-                .rev()
-                .map(|j| {
-                    let progress = Arc::clone(&progress);
-                    let mut scanline = Vec::with_capacity(width);
-                    for i in 0..width {
-                        let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-                        for _ in 0..SAMPLES_PER_PIXEL {
-                            let mod_x = i as f32 + common::random_double();
-                            let mod_y = j as f32 + common::random_double();
-                            let u = mod_x / (width - 1) as f32;
-                            let v = mod_y / (height - 1) as f32;
-                            let r = camera.get_ray(u, v);
-                            pixel_color += Self::ray_color(&r, &*world, MAX_DEPTH);
-                        }
-                        scanline.push(color::format_color(pixel_color, SAMPLES_PER_PIXEL));
-                    }
-                    let completed = progress.fetch_add(1, Ordering::Relaxed);
-                    eprint!("\rScanlines completed: {}/{}", completed + 1, height);
-                    scanline
-                })
-                .flatten()
-                .collect();
-
-            for line in &pixel_data {
-                writeln!(writer, "{}", line).expect("Failed to write pixel");
+            let rotation = Vec3::new(std::f32::consts::FRAC_PI_4, 0.0, std::f32::consts::FRAC_PI_4);
+            for tri in triangle::cube(Point3::new(0.0, 0.0, -2.0), 0.6, rotation, metal.clone()) {
+                world.add_hittable(Box::new(tri));
             }
 
-            writer.flush().expect("Failed to flush buffer");
-            std::fs::rename(tmp_path, &&final_path).expect("Failed to rename temp file");
+            let (min, max) = obj::load_obj_from_path(obj_path, world, glass).await?;
 
-            eprint!("\nFrame saved: {}\n", final_path.display());
-        }
+            let light_color = Color::new(0.9, 0.9, 0.9);
+            let light = Light::from_bounds(min, max, light_color);
+            world.add_light(light);
+
+            let camera = Camera::from_bounds(min, max, WIDTH as f32 / HEIGHT as f32, angle);
+
+            Ok(camera)
     }
-
+}

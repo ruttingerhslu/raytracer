@@ -1,2 +1,8 @@
 /target
+/Cargo.lock
+
 *.ppm
+*.gif
+*.png
+
+.DS_Store

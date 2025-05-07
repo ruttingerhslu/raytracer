@@ -10,5 +10,6 @@ pub mod material;
 pub mod world;
 pub mod hittable;
 pub mod light;
-pub mod scenes;
+pub mod obj;
 pub mod texture;
+pub mod renderer;

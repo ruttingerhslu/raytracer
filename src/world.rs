@@ -2,6 +2,7 @@ use crate::ray::Ray;
 use crate::hittable::{Hittable, HitRecord};
 use crate::light::Light;
 
+#[derive(Clone)]
 pub struct World {
     pub hittables: Vec<Box<dyn Hittable>>,
     pub lights: Vec<Light>,

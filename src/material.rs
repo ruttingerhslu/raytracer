@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::color::Color;
 use crate::ray::Ray;
-use crate::vec3::{self, Vec3, Point3};
+use crate::vec3::{self};
 use crate::hittable::HitRecord;
 use crate::texture::Texture;
  

@@ -1,6 +1,7 @@
 use crate::color::Color;
 use crate::vec3::{Point3, Vec3};
 
+#[derive(Clone)]
 pub struct Light {
     p: Point3,
     intensity: Color,

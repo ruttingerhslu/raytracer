@@ -7,12 +7,13 @@ use std::collections::HashMap;
 use std::fs;
 use clap::Parser;
 use serde::Deserialize;
+use std::process::{Command, Stdio};
 
-use raytracer::scenes::custom_scene;
-use raytracer::scenes::required_scene;
+use raytracer::scene::{Scene, CustomScene, RequiredScene, MuseumScene}; 
 
-use raytracer::scene::Scene;
-use raytracer::world::World; use asset_loader::download_obj_with_assets;
+use raytracer::renderer::Renderer;
+use raytracer::world::World; 
+use asset_loader::download_obj_with_assets;
 
 const WIDTH: usize = 512;
 const HEIGHT: usize = 512;
@@ -24,6 +25,15 @@ struct Args {
 
     #[arg(short, long, default_value = "config.toml")]
     config: String,
+
+    #[arg(long, default_value = "custom")]
+    scene: String,
+
+    #[arg(long, default_value_t = 20.0)]
+    angle: f32,
+
+    #[arg(long)]
+    animate: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -48,27 +58,72 @@ async fn main() -> Result<()> {
     };
 
     let (_tmp_dir, obj_path) = download_obj_with_assets(url).await?;
-    // let mut world = World::new();
-    // let camera = custom_scene::setup_custom_scene(&obj_path, &mut world).await?;
-    // // let camera = required_scene::setup_scene(&obj_path, &mut world).await?;
-    //
-    // let scene = Scene { camera };
-    // Scene::render_scene(&scene, world, WIDTH, HEIGHT);
-    const NUM_FRAMES: usize = 60;
+    let mut world = World::new();
 
-    for frame in 0..NUM_FRAMES {
-        let angle = frame as f32 / NUM_FRAMES as f32 * std::f32::consts::TAU; // full rotation
+    // set desired scene
+    let scene: Box<dyn Scene> = match args.scene.as_str() {
+        "custom" => Box::new(CustomScene),
+        "required" => Box::new(RequiredScene),
+        "museum" => Box::new(MuseumScene),
+        _ => Box::new(CustomScene),
+    };
+    let angle = args.angle;
 
-        // Setup scene for this frame
-        let mut world = World::new();
+    if !args.animate {
+        let camera = scene.setup(&obj_path, &mut world, angle).await?;
+        let renderer = Renderer::new(camera, world);
+        renderer.render_scene(WIDTH, HEIGHT);
+    } else {
+        let animation_filename = format!("animation/{}_{}.gif", args.scene, args.model);
 
-        // You pass in the angle to rotate the camera or object
-        let camera = custom_scene::setup_custom_scene(&obj_path, &mut world, angle).await?;
+        // animation
+        const NUM_FRAMES: usize = 60;
 
-        let scene = Scene { camera };
+        for frame in 0..NUM_FRAMES {
+            let angle = frame as f32 / NUM_FRAMES as f32 * std::f32::consts::TAU; // full rotation
+            let mut world = World::new();
+            let camera = scene.setup(&obj_path, &mut world, angle).await?;
+            let renderer = Renderer::new(camera, world);
+            let filename = format!("frame_{:03}", frame);
+            renderer.render_scene_to_file(WIDTH, HEIGHT, &filename);
+        }
 
-        let filename = format!("frame_{:03}", frame);
-        Scene::render_scene_to_file(&scene, world, WIDTH, HEIGHT, &filename);
+        Command::new("ffmpeg")
+            .args([
+                "-y",
+                "-framerate", "24",
+                "-i", "animation/frame_%03d.ppm",
+                "-vf", "palettegen",
+                "palette.png",
+            ])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()?;
+
+        Command::new("ffmpeg")
+            .args([
+                "-y",
+                "-framerate", "24",
+                "-i", "animation/frame_%03d.ppm",
+                "-i", "palette.png",
+                "-lavfi", "paletteuse",
+                &animation_filename,
+            ])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()?;
+
+        for entry in fs::read_dir("animation")? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.extension().and_then(|ext| ext.to_str()) == Some("ppm") {
+                fs::remove_file(path)?;
+            }
+        }
+
+        fs::remove_file("palette.png").ok();
+
+        println!("✅ Animation saved to {}", animation_filename);
     }
 
     Ok(())
