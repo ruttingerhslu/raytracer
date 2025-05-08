@@ -9,3 +9,4 @@ spot = "https://raw.githubusercontent.com/alecjacobson/common-3d-test-models/ref
 seashell = "https://github.com/pichiliani/ModelsOBJ/raw/refs/heads/master/seashell.obj"
 tetrahedron = "https://github.com/pichiliani/ModelsOBJ/raw/refs/heads/master/tetrahedron.obj"
 text = "https://raw.githubusercontent.com/ruttingerhslu/raytracer/refs/heads/main/assets/required_text.obj"
+cat = "https://raw.githubusercontent.com/ruttingerhslu/raytracer/refs/heads/main/assets/cat/oiiaioooooiai_cat.obj"
