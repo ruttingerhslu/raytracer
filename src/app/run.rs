@@ -29,7 +29,7 @@ pub async fn run_or_animate(args: Args, config: Config) -> Result<()> {
     let height = width;
 
     if !args.animate {
-        let camera = scene.setup(&obj_path, &mut world, args.angle).await?;
+        let camera = scene.setup(&obj_path, &mut world, args.angle, width, height).await?;
         let renderer = Renderer::new(camera, world);
         renderer.render_scene(width, height);
     } else {

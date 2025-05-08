@@ -54,14 +54,14 @@ impl Camera {
         }
     }
 
-    pub fn from_bounds(min: Point3, max: Point3, aspect_ratio: f32, angle: f32) -> Self {
+    pub fn from_bounds(min: Point3, max: Point3, aspect_ratio: f32, angle: f32, height_offset_factor: f32) -> Self {
         let center = (min + max) * 0.5;
         let diagonal = (max - min).length();
         let radius = diagonal * 1.5;
 
         let x = radius * angle.cos();
         let z = radius * angle.sin();
-        let y = diagonal * 0.5;
+        let y = diagonal * height_offset_factor;
 
         let lookfrom = center + Vec3::new(x, y, z);
         let lookat = center;
@@ -79,29 +79,6 @@ impl Camera {
             self.origin,
             self.lower_left_corner + u * self.horizontal + v * self.vertical - self.origin,
         )
-    }
-
-    pub fn from_gltf(position: Vec3, direction: Vec3, up: Vec3, fov_degrees: f32, aspect_ratio: f32) -> Self {
-        let theta = fov_degrees.to_radians();
-        let h = (theta / 2.0).tan();
-        let viewport_height = 2.0 * h;
-        let viewport_width = aspect_ratio * viewport_height;
-
-        let w = direction.normalize() * -1.0;
-        let u = up.cross(w).normalize();
-        let v = w.cross(u);
-
-        let origin = position;
-        let horizontal = u * viewport_width;
-        let vertical = v * viewport_height;
-        let lower_left_corner = origin - horizontal / 2.0 - vertical / 2.0 - w;
-
-        Camera {
-            origin,
-            lower_left_corner,
-            horizontal,
-            vertical,
-        }         
     }
 
     pub fn default() -> Self {

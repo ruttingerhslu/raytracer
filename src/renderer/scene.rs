@@ -17,9 +17,6 @@ use crate::objects::triangle::{self, Triangle};
 use crate::objects::sphere::Sphere;
 use crate::objects::light::Light;
 
-const WIDTH: usize = 512;
-const HEIGHT: usize = 512;
-
 #[async_trait]
 pub trait Scene: Send + Sync {
     async fn setup(
@@ -27,6 +24,8 @@ pub trait Scene: Send + Sync {
         obj_path: &PathBuf,
         world: &mut World,
         angle: f32,
+        height: usize,
+        width: usize,
     ) -> Result<Camera>;
 }
 
@@ -41,6 +40,8 @@ impl Scene for CustomScene {
         obj_path: &PathBuf,
         world: &mut World,
         angle: f32,
+        height: usize,
+        width: usize,
     ) -> Result<Camera> {
         let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
         let material_center = Arc::new(Lambertian::new(Color::new(0.7, 0.3, 0.3)));
@@ -103,7 +104,7 @@ impl Scene for CustomScene {
         let light = Light::from_bounds(min, max, light_color);
         world.add_light(light);
 
-        let camera = Camera::from_bounds(min, max, WIDTH as f32 / HEIGHT as f32, angle);
+        let camera = Camera::from_bounds(min, max, width as f32 / height as f32, angle, 0.5);
 
         Ok(camera)
     }
@@ -116,6 +117,8 @@ impl Scene for MuseumScene {
         obj_path: &PathBuf,
         world: &mut World,
         angle: f32,
+        height: usize,
+        width: usize,
     ) -> Result<Camera> {
         let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
         let glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
@@ -135,8 +138,8 @@ impl Scene for MuseumScene {
         let light = Light::from_bounds(min, max, light_color);
         world.add_light(light);
 
-        let aspect_ratio = WIDTH as f32 / HEIGHT as f32;
-        let camera = Camera::from_bounds(min, max, aspect_ratio, angle);
+        let aspect_ratio = width as f32 / height as f32;
+        let camera = Camera::from_bounds(min, max, aspect_ratio, angle, 0.5);
 
         Ok(camera)
     }
@@ -153,6 +156,8 @@ impl Scene for RequiredScene {
         obj_path: &PathBuf,
         world: &mut World,
         angle: f32,
+        height: usize,
+        width: usize,
     ) -> Result<Camera> {
         let black = Arc::new(Lambertian::new(Color::new(0.2, 0.2, 0.2)));
 
@@ -162,7 +167,7 @@ impl Scene for RequiredScene {
         let light = Light::from_bounds(min, max, light_color);
         world.add_light(light);
 
-        let camera = Camera::from_bounds(min, max, WIDTH as f32 / HEIGHT as f32, angle);
+        let camera = Camera::from_bounds(min, max, width as f32 / height as f32, angle, 0.5);
 
         Ok(camera)
     }

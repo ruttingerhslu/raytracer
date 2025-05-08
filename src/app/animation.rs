@@ -16,7 +16,7 @@ pub async fn render_animation(args: Args, scene: Box<dyn Scene>, obj_path: &Path
     for frame in 0..NUM_FRAMES {
         let angle = frame as f32 / NUM_FRAMES as f32 * std::f32::consts::TAU;
         let mut world = World::new();
-        let camera = scene.setup(obj_path, &mut world, angle).await?;
+        let camera = scene.setup(obj_path, &mut world, angle, height, width).await?;
         let renderer = Renderer::new(camera, world);
         let filename = format!("frame_{:03}", frame);
         renderer.render_scene_to_file(width, height, &filename);
