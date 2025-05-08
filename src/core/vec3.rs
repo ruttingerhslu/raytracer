@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub};
 
-use crate::common;
+use crate::core::common;
  
 #[derive(Copy, Clone, Default, Debug)]
 pub struct Vec3 {
@@ -9,6 +9,8 @@ pub struct Vec3 {
 }
  
 impl Vec3 {
+    pub const ZERO: Vec3 = Vec3 { e: [0.0, 0.0, 0.0] };
+
     pub fn new(x: f32, y: f32, z: f32) -> Vec3 {
         Vec3 { e: [x, y, z] }
     }
@@ -74,6 +76,10 @@ impl Vec3 {
 
     pub fn unit_vector(&self) -> Vec3 {
         unit_vector(*self)
+    }
+
+    pub fn max_component(&self) -> f32 {
+        self.x().max(self.y()).max(self.z())
     }
 }
  

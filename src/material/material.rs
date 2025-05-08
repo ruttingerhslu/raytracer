@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
-use crate::color::Color;
-use crate::ray::Ray;
-use crate::vec3::{self};
-use crate::hittable::HitRecord;
-use crate::texture::Texture;
+use crate::core::color::Color;
+use crate::core::ray::Ray;
+use crate::core::vec3::{self};
+
+use crate::objects::hittable::HitRecord;
+
+use crate::material::texture::Texture;
  
 pub trait Material: Send + Sync {
     fn scatter(

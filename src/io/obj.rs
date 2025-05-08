@@ -3,10 +3,12 @@ use std::sync::Arc;
 use anyhow::Result;
 use std::path::PathBuf; 
 
-use crate::triangle::Triangle;
-use crate::vec3::{Point3};
-use crate::world::World;
-use crate::material::{Material};
+use crate::core::vec3::{Point3};
+
+use crate::material::material::{Material};
+
+use crate::objects::triangle::Triangle;
+use crate::objects::world::World;
 
 pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn Material>) -> Result<(Point3, Point3)> {
     let (models, _) = tobj::load_obj(

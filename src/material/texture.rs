@@ -1,5 +1,6 @@
 use image::{RgbaImage};
-use crate::color::{Color};
+
+use crate::core::color::{Color};
 
 pub struct Texture {
     image: RgbaImage,

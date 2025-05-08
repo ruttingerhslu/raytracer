@@ -1,5 +1,5 @@
-use crate::color::Color;
-use crate::vec3::{Point3, Vec3};
+use crate::core::color::Color;
+use crate::core::vec3::{Point3, Vec3};
 
 #[derive(Clone)]
 pub struct Light {

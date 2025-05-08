@@ -1,7 +1,5 @@
 #![allow(unused)]
 
-mod asset_loader;
-
 use anyhow::{Result};
 use std::collections::HashMap;
 use std::fs;
@@ -9,11 +7,12 @@ use clap::Parser;
 use serde::Deserialize;
 use std::process::{Command, Stdio};
 
-use raytracer::scene::{Scene, CustomScene, RequiredScene, MuseumScene}; 
+use raytracer::io::asset_loader::download_obj_with_assets;
 
-use raytracer::renderer::Renderer;
-use raytracer::world::World; 
-use asset_loader::download_obj_with_assets;
+use raytracer::objects::world::World; 
+
+use raytracer::renderer::scene::{Scene, CustomScene, RequiredScene, MuseumScene}; 
+use raytracer::renderer::renderer::Renderer;
 
 const WIDTH: usize = 512;
 const HEIGHT: usize = 512;

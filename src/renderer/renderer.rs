@@ -6,14 +6,14 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::fs::create_dir_all; 
 
-use crate::color::{self, Color};
-use crate::vec3::{self};
-use crate::ray::Ray;
-use crate::camera::Camera;
-use crate::common;
+use crate::core::color::{self, Color};
+use crate::core::vec3::{self};
+use crate::core::ray::Ray;
+use crate::core::camera::Camera;
+use crate::core::common;
 
-use crate::world::World;
-use crate::hittable::HitRecord;
+use crate::objects::world::World;
+use crate::objects::hittable::HitRecord;
 
 const SAMPLES_PER_PIXEL: i32 = 10;
 const MAX_DEPTH: i32 = 10;

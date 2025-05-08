@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
-use crate::material::Material;
-use crate::ray::Ray;
-use crate::vec3::{self, Point3, Vec3};
+use crate::core::ray::Ray;
+use crate::core::vec3::{self, Point3, Vec3};
+
+use crate::material::material::Material;
  
 #[derive(Clone, Default)]
 pub struct HitRecord {

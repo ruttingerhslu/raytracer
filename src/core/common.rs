@@ -1,5 +1,6 @@
 use rand::Rng;
-use crate::vec3::Vec3;
+
+use crate::core::vec3::Vec3;
 
 // Constants
  

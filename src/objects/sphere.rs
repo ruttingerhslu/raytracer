@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use crate::hittable::{HitRecord, Hittable};
-use crate::ray::Ray;
-use crate::vec3::{self, Point3};
-use crate::material::Material;
+use crate::core::ray::Ray;
+use crate::core::vec3::{self, Point3};
+
+use crate::objects::hittable::{HitRecord, Hittable};
+use crate::material::material::Material;
 
 #[derive(Clone)]
 pub struct Sphere {

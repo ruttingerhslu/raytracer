@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 
-use crate::vec3::{Point3, Vec3};
-use crate::ray::Ray;
+use crate::core::vec3::{Point3, Vec3};
+use crate::core::ray::Ray;
 
 #[derive(Clone)]
 pub struct Camera {

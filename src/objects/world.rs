@@ -1,6 +1,7 @@
-use crate::ray::Ray;
-use crate::hittable::{Hittable, HitRecord};
-use crate::light::Light;
+use crate::core::ray::Ray;
+
+use crate::objects::hittable::{Hittable, HitRecord};
+use crate::objects::light::Light;
 
 #[derive(Clone)]
 pub struct World {
