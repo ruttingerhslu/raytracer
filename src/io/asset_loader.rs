@@ -25,7 +25,7 @@ pub async fn download_obj_with_assets(obj_url: &str) -> Result<(TempDir, PathBuf
         .map(|s| s.to_string());
 
     if let Some(mtl_file_name) = mtl_file {
-        let mtl_url = format!("{base_url}{}", mtl_file_name);
+        let mtl_url = format!("{base_url}/{}", mtl_file_name);
         let mtl_bytes = reqwest::get(&mtl_url).await?.bytes().await?;
         let mtl_path = temp_dir.path().join(&mtl_file_name);
         fs::write(&mtl_path, &mtl_bytes)?;
@@ -36,7 +36,7 @@ pub async fn download_obj_with_assets(obj_url: &str) -> Result<(TempDir, PathBuf
         for line in mtl_text.lines() {
             if let Some(caps) = tex_re.captures(line) {
                 let tex_file = caps[1].trim();
-                let tex_url = format!("{base_url}{}", tex_file);
+                let tex_url = format!("{base_url}/{}", tex_file);
                 let tex_bytes = reqwest::get(&tex_url).await?.bytes().await?;
                 
                 let tex_path = temp_dir.path().join(tex_file);
@@ -49,6 +49,5 @@ pub async fn download_obj_with_assets(obj_url: &str) -> Result<(TempDir, PathBuf
             }
         }
     }
-    println!("Downloaded model.obj ({} bytes)", obj_bytes.len());
     Ok((temp_dir, obj_path))
 }

@@ -2,7 +2,7 @@ use clap::Parser;
 
 #[derive(Parser)]
 pub struct Args {
-    #[arg(short, long, default_value = "suzanne")]
+    #[arg(short, long, default_value = "cube-tex")]
     pub model: String,
 
     #[arg(short, long, default_value = "config.toml")]

@@ -13,12 +13,6 @@ const WIDTH: usize = 512;
 const HEIGHT: usize = 512;
 
 pub async fn run_or_animate(args: Args, config: Config) -> Result<()> {
-    println!("test: {}", args.model);
-    // let model = args.model.clone().unwrap_or_else(|| config.default.model.clone());
-    // let scene_name = args.scene.unwrap_or(config.default.scene);
-    // let angle = args.angle.unwrap_or(config.default.angle);
-    // let animate = args.animate || config.default.animate;
-
     let Some(url) = config.models.get(&args.model) else {
         eprintln!("Model '{}' not found in config", args.model);
         std::process::exit(1);

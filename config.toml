@@ -3,6 +3,7 @@ space_shuttle = "https://raw.githubusercontent.com/pichiliani/ModelsOBJ/refs/hea
 suzanne = "https://s3.amazonaws.com/everse.assets/common3dmodels/OBJ/suzanne.obj"
 teapot = "https://s3.amazonaws.com/everse.assets/common3dmodels/OBJ/teapot.obj"
 cube = "https://raw.githubusercontent.com/garykac/3d-cubes/refs/heads/master/cube.obj"
+cube-tex = "https://raw.githubusercontent.com/garykac/3d-cubes/refs/heads/master/cube-tex.obj"
 lucy = "https://github.com/alecjacobson/common-3d-test-models/raw/refs/heads/master/data/lucy.obj"
 spot = "https://raw.githubusercontent.com/alecjacobson/common-3d-test-models/refs/heads/master/data/spot.obj"
 seashell = "https://github.com/pichiliani/ModelsOBJ/raw/refs/heads/master/seashell.obj"

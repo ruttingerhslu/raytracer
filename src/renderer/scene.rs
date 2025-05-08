@@ -47,7 +47,7 @@ impl Scene for CustomScene {
         let glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
         let metal = Arc::new(Metal::new(Color::new(0.9, 0.9, 0.9), 0.3));
 
-        // text wall
+        // text wall - texture mapping
         let img = image::open("text.png")?.to_rgba8();
         let texture = Arc::new(Texture::new(img));
         let mat = Arc::new(TexturedMaterial::new(texture));
@@ -142,6 +142,10 @@ impl Scene for MuseumScene {
     }
 }
 
+// presentation 5-10 minutes
+// sphere in a corner that is transparent -> text is shown through sphere
+//
+// show unique feature of program
 #[async_trait]
 impl Scene for RequiredScene {
     async fn setup(

@@ -2,16 +2,20 @@ use tobj;
 use std::sync::Arc;
 use anyhow::Result;
 use std::path::PathBuf; 
+use std::path::Path; 
+use std::collections::HashMap;
 
 use crate::core::vec3::{Point3};
+use crate::core::color::Color;
 
-use crate::material::material::{Material};
+use crate::material::material::{Material, TexturedMaterial, Metal};
+use crate::material::texture::Texture;                                                                                                                                                                  
 
 use crate::objects::triangle::Triangle;
 use crate::objects::world::World;
 
 pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn Material>) -> Result<(Point3, Point3)> {
-    let (models, _) = tobj::load_obj(
+    let (models, materials) = tobj::load_obj(
         path,
         &tobj::LoadOptions {
             triangulate: true,
@@ -19,10 +23,31 @@ pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn 
             ..Default::default()
         },
     )?;
+    let materials = materials.expect("Failed to load MTL file");
+
+    let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut material_map: HashMap<usize, Arc<dyn Material>> = HashMap::new();
+
+    for (i, mat) in materials.iter().enumerate() {
+        if let Some(ref map_kd) = mat.diffuse_texture {
+            let texture_path = base_dir.join(map_kd);
+            if texture_path.exists() {
+                let img = image::open(texture_path)?;
+                let img = img.to_rgba8();
+                let texture = Arc::new(Texture::new(img));
+                let textured_material = Arc::new(TexturedMaterial::new(texture));
+                material_map.insert(i, textured_material);
+            } else {
+                eprintln!("Warning: Texture not found: {:?}", texture_path);
+            }
+        } else {
+            let default_mat = Arc::new(Metal::new(Color::new(0.9, 0.9, 0.9), 0.3));
+            material_map.insert(i, default_mat);
+        }
+    }
 
     let mut min = Point3::new(f32::MAX, f32::MAX, f32::MAX);
     let mut max = Point3::new(f32::MIN, f32::MIN, f32::MIN);
-
 
     for model in models {
         let mesh = &model.mesh;
@@ -42,6 +67,11 @@ pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn 
 
         let indices = &mesh.indices;
 
+        let material_id = mesh.material_id;
+        let selected_material = material_id
+            .and_then(|id| material_map.get(&id).cloned())
+            .unwrap_or_else(|| mat.clone());
+
         for triangle in indices.chunks(3) {
             if triangle.len() == 3 {
                 let i0 = triangle[0] as usize;
@@ -59,7 +89,7 @@ pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn 
                 world.add_hittable(Box::new(Triangle::new(
                     a, b, c,
                     uv0, uv1, uv2,
-                    mat.clone()
+                    selected_material.clone()
                 )));
             }
         }
