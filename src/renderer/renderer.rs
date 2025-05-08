@@ -135,50 +135,50 @@ impl Renderer {
     }
 
     pub fn render_scene_to_file(&self, width: usize, height: usize, filename: &str) {
-            let output_dir = Path::new("animation");
-            create_dir_all(output_dir).expect("Failed to create output directory");
+        let output_dir = Path::new("animation");
+        create_dir_all(output_dir).expect("Failed to create output directory");
 
-            let tmp_path = output_dir.join(format!("{filename}.tmp"));
-            let final_path = output_dir.join(format!("{filename}.ppm"));
+        let tmp_path = output_dir.join(format!("{filename}.tmp"));
+        let final_path = output_dir.join(format!("{filename}.ppm"));
 
-            let file = File::create(&tmp_path).expect("Failed to create temp file");
-            let mut writer = BufWriter::new(file);
+        let file = File::create(&tmp_path).expect("Failed to create temp file");
+        let mut writer = BufWriter::new(file);
 
-            writeln!(writer, "P3").expect("Failed to write PPM header");
-            writeln!(writer, "{} {}", width, height).expect("Failed to write dimensions");
-            writeln!(writer, "255").expect("Failed to write max color value");
+        writeln!(writer, "P3").expect("Failed to write PPM header");
+        writeln!(writer, "{} {}", width, height).expect("Failed to write dimensions");
+        writeln!(writer, "255").expect("Failed to write max color value");
 
-            let camera = Arc::new(self.camera.clone());
-            let world = Arc::new(self.world.clone());
+        let camera = Arc::new(self.camera.clone());
+        let world = Arc::new(self.world.clone());
 
-            let pixel_data: Vec<String> = (0..height)
-                .into_par_iter()
-                .rev()
-                .map(|j| {
-                    let mut scanline = Vec::with_capacity(width);
-                    for i in 0..width {
-                        let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-                        for _ in 0..SAMPLES_PER_PIXEL {
-                            let mod_x = i as f32 + common::random_double();
-                            let mod_y = j as f32 + common::random_double();
-                            let u = mod_x / (width - 1) as f32;
-                            let v = mod_y / (height - 1) as f32;
-                            let r = camera.get_ray(u, v);
-                            pixel_color += Self::ray_color(&r, &*world, MAX_DEPTH);
-                        }
-                        scanline.push(color::format_color(pixel_color, SAMPLES_PER_PIXEL));
+        let pixel_data: Vec<String> = (0..height)
+            .into_par_iter()
+            .rev()
+            .map(|j| {
+                let mut scanline = Vec::with_capacity(width);
+                for i in 0..width {
+                    let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+                    for _ in 0..SAMPLES_PER_PIXEL {
+                        let mod_x = i as f32 + common::random_double();
+                        let mod_y = j as f32 + common::random_double();
+                        let u = mod_x / (width - 1) as f32;
+                        let v = mod_y / (height - 1) as f32;
+                        let r = camera.get_ray(u, v);
+                        pixel_color += Self::ray_color(&r, &*world, MAX_DEPTH);
                     }
-                    scanline
-                })
-                .flatten()
-                .collect();
+                    scanline.push(color::format_color(pixel_color, SAMPLES_PER_PIXEL));
+                }
+                scanline
+            })
+            .flatten()
+            .collect();
 
-            for line in &pixel_data {
-                writeln!(writer, "{}", line).expect("Failed to write pixel");
-            }
-
-            writer.flush().expect("Failed to flush buffer");
-            std::fs::rename(tmp_path, &&final_path).expect("Failed to rename temp file");
+        for line in &pixel_data {
+            writeln!(writer, "{}", line).expect("Failed to write pixel");
         }
+
+        writer.flush().expect("Failed to flush buffer");
+        std::fs::rename(tmp_path, &&final_path).expect("Failed to rename temp file");
     }
+}
 

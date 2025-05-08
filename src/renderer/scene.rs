@@ -154,22 +154,9 @@ impl Scene for RequiredScene {
         world: &mut World,
         angle: f32,
     ) -> Result<Camera> {
-        let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
-        let glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
-        let metal = Arc::new(Metal::new(Color::new(0.9, 0.9, 0.9), 0.3));
+        let black = Arc::new(Lambertian::new(Color::new(0.2, 0.2, 0.2)));
 
-        world.add_hittable(Box::new(Sphere::new(
-            Point3::new(0.0, -100.5, -1.0),
-            100.0,
-            material_ground,
-        )));
-
-        let rotation = Vec3::new(std::f32::consts::FRAC_PI_4, 0.0, std::f32::consts::FRAC_PI_4);
-        for tri in triangle::cube(Point3::new(0.0, 0.0, -2.0), 0.6, rotation, metal.clone()) {
-            world.add_hittable(Box::new(tri));
-        }
-
-        let (min, max) = obj::load_obj_from_path(obj_path, world, glass).await?;
+        let (min, max) = obj::load_obj_from_path(obj_path, world, black.clone()).await?;
 
         let light_color = Color::new(0.9, 0.9, 0.9);
         let light = Light::from_bounds(min, max, light_color);

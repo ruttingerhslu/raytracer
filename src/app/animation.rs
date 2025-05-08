@@ -8,11 +8,9 @@ use raytracer::objects::world::World;
 use raytracer::renderer::scene::Scene;
 use raytracer::renderer::renderer::Renderer;
 
-const WIDTH: usize = 512;
-const HEIGHT: usize = 512;
 const NUM_FRAMES: usize = 60;
 
-pub async fn render_animation(args: Args, scene: Box<dyn Scene>, obj_path: &PathBuf) -> Result<()> {
+pub async fn render_animation(args: Args, scene: Box<dyn Scene>, obj_path: &PathBuf, width: usize, height: usize) -> Result<()> {
     let animation_filename = format!("animation/{}_{}.gif", args.scene, args.model);
 
     for frame in 0..NUM_FRAMES {
@@ -20,8 +18,8 @@ pub async fn render_animation(args: Args, scene: Box<dyn Scene>, obj_path: &Path
         let mut world = World::new();
         let camera = scene.setup(obj_path, &mut world, angle).await?;
         let renderer = Renderer::new(camera, world);
-        let filename = format!("animation/frame_{:03}", frame);
-        renderer.render_scene_to_file(WIDTH, HEIGHT, &filename);
+        let filename = format!("frame_{:03}", frame);
+        renderer.render_scene_to_file(width, height, &filename);
     }
 
     Command::new("ffmpeg")

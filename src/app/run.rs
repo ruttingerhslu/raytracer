@@ -9,9 +9,6 @@ use raytracer::objects::world::World;
 use raytracer::renderer::scene::{CustomScene, MuseumScene, RequiredScene, Scene};
 use raytracer::renderer::renderer::Renderer;
 
-const WIDTH: usize = 512;
-const HEIGHT: usize = 512;
-
 pub async fn run_or_animate(args: Args, config: Config) -> Result<()> {
     let Some(url) = config.models.get(&args.model) else {
         eprintln!("Model '{}' not found in config", args.model);
@@ -28,12 +25,15 @@ pub async fn run_or_animate(args: Args, config: Config) -> Result<()> {
         _ => Box::new(CustomScene),
     };
 
+    let width = args.resolution;
+    let height = width;
+
     if !args.animate {
         let camera = scene.setup(&obj_path, &mut world, args.angle).await?;
         let renderer = Renderer::new(camera, world);
-        renderer.render_scene(WIDTH, HEIGHT);
+        renderer.render_scene(width, height);
     } else {
-        render_animation(args, scene, &obj_path).await?;
+        render_animation(args, scene, &obj_path, width, height).await?;
     }
 
     Ok(())
