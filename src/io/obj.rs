@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::path::Path; 
 use std::collections::HashMap;
 
-use crate::core::vec3::{Point3};
+use crate::core::vec3::{Vec3, Point3};
 use crate::core::color::Color;
 
 use crate::material::material::{Material, TexturedMaterial, Metal};
@@ -14,7 +14,7 @@ use crate::material::texture::Texture;
 use crate::objects::triangle::Triangle;
 use crate::objects::world::World;
 
-pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn Material>) -> Result<(Point3, Point3)> {
+pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn Material>, rotation: Vec3) -> Result<(Point3, Point3)> {
     let (models, materials) = tobj::load_obj(
         path,
         &tobj::LoadOptions {
@@ -48,6 +48,7 @@ pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn 
 
     let mut min = Point3::new(f32::MAX, f32::MAX, f32::MAX);
     let mut max = Point3::new(f32::MIN, f32::MIN, f32::MIN);
+    let mut center = Vec3::ZERO;
 
     for model in models {
         let mesh = &model.mesh;
@@ -57,6 +58,7 @@ pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn 
                 let point = Point3::new(p[0], p[1], p[2]);
                 min = Point3::new(min.x().min(point.x()), min.y().min(point.y()), min.z().min(point.z()));
                 max = Point3::new(max.x().max(point.x()), max.y().max(point.y()), max.z().max(point.z()));
+                center = (min + max) * 0.5;
                 point
             })
             .collect::<Vec<_>>();
@@ -78,9 +80,9 @@ pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn 
                 let i1 = triangle[1] as usize;
                 let i2 = triangle[2] as usize;
 
-                let a = positions[i0];
-                let b = positions[i1];
-                let c = positions[i2];
+                let a = positions[i0].rotate_xyz(rotation) + center;
+                let b = positions[i1].rotate_xyz(rotation) + center;
+                let c = positions[i2].rotate_xyz(rotation) + center;
 
                 let uv0 = texcoords.get(i0).cloned().unwrap_or((0.0, 0.0));
                 let uv1 = texcoords.get(i1).cloned().unwrap_or((0.0, 0.0));

@@ -81,6 +81,37 @@ impl Vec3 {
     pub fn max_component(&self) -> f32 {
         self.x().max(self.y()).max(self.z())
     }
+
+    pub fn rotate_x(&self, angle: f32) -> Vec3 {
+        let (s, c) = angle.sin_cos();
+        Vec3::new(
+            self.x(),
+            c * self.y() - s * self.z(),
+            s * self.y() + c * self.z(),
+        )
+    }
+
+    pub fn rotate_y(&self, angle: f32) -> Vec3 {
+        let (s, c) = angle.sin_cos();
+        Vec3::new(
+            c * self.x() + s * self.z(),
+            self.y(),
+            -s * self.x() + c * self.z(),
+        )
+    }
+
+    pub fn rotate_z(&self, angle: f32) -> Vec3 {
+        let (s, c) = angle.sin_cos();
+        Vec3::new(
+            c * self.x() - s * self.y(),
+            s * self.x() + c * self.y(),
+            self.z(),
+        )
+    }
+
+    pub fn rotate_xyz(&self, r: Vec3) -> Vec3 {
+        self.rotate_x(r.x()).rotate_y(r.y()).rotate_z(r.z())
+    }
 }
  
 // Type alias

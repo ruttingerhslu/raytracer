@@ -97,7 +97,8 @@ impl Scene for CustomScene {
         }
 
         // loaded object
-        let (min, max) = obj::load_obj_from_path(obj_path, world, glass).await?;
+        let rotation = Vec3::ZERO;
+        let (min, max) = obj::load_obj_from_path(obj_path, world, glass, rotation).await?;
 
         // light
         let light_color = Color::new(0.9, 0.9, 0.9);
@@ -131,7 +132,8 @@ impl Scene for MuseumScene {
             material_ground,
         )));
 
-        let (min, max) = obj::load_obj_from_path(obj_path, world, glass.clone()).await?;
+        let rotation = Vec3::ZERO;
+        let (min, max) = obj::load_obj_from_path(obj_path, world, glass.clone(), rotation).await?;
 
         // light
         let light_color = Color::new(0.9, 0.9, 0.9);
@@ -161,7 +163,8 @@ impl Scene for RequiredScene {
     ) -> Result<Camera> {
         let black = Arc::new(Lambertian::new(Color::new(0.2, 0.2, 0.2)));
 
-        let (min, max) = obj::load_obj_from_path(obj_path, world, black.clone()).await?;
+        let rotation = Vec3::new(-std::f32::consts::FRAC_PI_2, 0.0, 0.0);
+        let (min, max) = obj::load_obj_from_path(obj_path, world, black.clone(), rotation).await?;
 
         let light_color = Color::new(0.9, 0.9, 0.9);
         let light = Light::from_bounds(min, max, light_color);
