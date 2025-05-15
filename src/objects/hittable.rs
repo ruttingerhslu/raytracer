@@ -4,6 +4,8 @@ use crate::core::ray::Ray;
 use crate::core::vec3::{self, Point3, Vec3};
 
 use crate::material::material::Material;
+
+use crate::bvh::aabb::AABB;
  
 #[derive(Clone, Default)]
 pub struct HitRecord {
@@ -34,11 +36,6 @@ impl HitRecord {
 pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32, rec: &mut HitRecord) -> bool;
 
-    fn box_clone(&self) -> Box<dyn Hittable>;
+    fn bounding_box(&self) -> Option<AABB>;
 }
 
-impl Clone for Box<dyn Hittable> {
-    fn clone(&self) -> Box<dyn Hittable> {
-        self.box_clone()
-    }
-}

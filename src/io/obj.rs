@@ -88,7 +88,7 @@ pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn 
                 let uv1 = texcoords.get(i1).cloned().unwrap_or((0.0, 0.0));
                 let uv2 = texcoords.get(i2).cloned().unwrap_or((0.0, 0.0));
 
-                world.add_hittable(Box::new(Triangle::new(
+                world.add_hittable(Arc::new(Triangle::new(
                     a, b, c,
                     uv0, uv1, uv2,
                     selected_material.clone()

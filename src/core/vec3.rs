@@ -42,6 +42,15 @@ impl Vec3 {
     pub fn z(&self) -> f32 {
         self.e[2]
     }
+
+    pub fn get(&self, i: usize) -> f32 {
+        match i {
+            0 => self.x(),
+            1 => self.y(),
+            2 => self.z(),
+            _ => panic!("Index out of bounds for Vec3"),
+        }
+    }
  
     pub fn length(&self) -> f32 {
         f32::sqrt(self.length_squared())
@@ -261,3 +270,18 @@ pub fn schlick(cosine: f32, ref_idx: f32) -> f32 {
     r0 + (1.0 - r0) * (1.0 - cosine).powf(5.0)
 }
 
+pub fn min(v1: Vec3, v2: Vec3) -> Vec3 {
+    Vec3::new(
+        v1.x().min(v2.x()),  // Compare the x components
+        v1.y().min(v2.y()),  // Compare the y components
+        v1.z().min(v2.z())   // Compare the z components
+    )
+}
+
+pub fn max(v1: Vec3, v2: Vec3) -> Vec3 {
+    Vec3::new(
+        v1.x().max(v2.x()),  // Compare the x components
+        v1.y().max(v2.y()),  // Compare the y components
+        v1.z().max(v2.z())   // Compare the z components
+    )
+}

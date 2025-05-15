@@ -17,6 +17,6 @@ pub struct Args {
     #[arg(long)]
     pub animate: bool,
 
-    #[arg(short, default_value_t = 1024)]
+    #[arg(short, default_value_t = 512)]
     pub resolution: usize,
 }

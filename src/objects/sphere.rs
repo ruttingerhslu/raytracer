@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use crate::core::ray::Ray;
-use crate::core::vec3::{self, Point3};
+use crate::core::vec3::{self, Vec3, Point3};
 
 use crate::objects::hittable::{HitRecord, Hittable};
 use crate::material::material::Material;
+
+use crate::bvh::aabb::AABB;
 
 #[derive(Clone)]
 pub struct Sphere {
@@ -52,7 +54,9 @@ impl Hittable for Sphere {
         true
     }
 
-    fn box_clone(&self) -> Box<dyn Hittable> {
-        Box::new(self.clone())
+    fn bounding_box(&self) -> Option<AABB> {
+        let radius_vec = Vec3::new(self.radius, self.radius, self.radius);
+        Some(AABB::new(self.center - radius_vec, self.center + radius_vec))
     }
 }
+

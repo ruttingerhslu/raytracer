@@ -66,25 +66,25 @@ impl Scene for CustomScene {
         let uv1 = (1.0, 0.0);
         let uv2 = (0.0, 1.0);
         let uv3 = (1.0, 1.0);
-        world.add_hittable(Box::new(Triangle::new(
+        world.add_hittable(Arc::new(Triangle::new(
             v0, v1, v3,
             uv0, uv1, uv3,
             mat.clone()
         )));
-        world.add_hittable(Box::new(Triangle::new(
+        world.add_hittable(Arc::new(Triangle::new(
             v0, v3, v2,
             uv0, uv3, uv2,
             mat
         )));
 
         // world sphere (ground)
-        world.add_hittable(Box::new(Sphere::new(
+        world.add_hittable(Arc::new(Sphere::new(
             Point3::new(0.0, -100.5, -1.0),
             100.0,
             material_ground,
         )));
         // sphere example 
-        world.add_hittable(Box::new(Sphere::new(
+        world.add_hittable(Arc::new(Sphere::new(
             Point3::new(0.0, 0.0, -1.0),
             0.5,
             material_center,
@@ -93,7 +93,7 @@ impl Scene for CustomScene {
         // rotated cube
         let rotation = Vec3::new(std::f32::consts::FRAC_PI_4, 0.0, std::f32::consts::FRAC_PI_4);
         for tri in triangle::cube(Point3::new(0.0, 0.0, -2.0), 0.6, rotation, metal.clone()) {
-            world.add_hittable(Box::new(tri));
+            world.add_hittable(Arc::new(tri));
         }
 
         // loaded object
@@ -126,7 +126,7 @@ impl Scene for MuseumScene {
         // let air = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.0));
         // let metal = Arc::new(Metal::new(Color::new(0.9, 0.9, 0.9), 0.3));
 
-        world.add_hittable(Box::new(Sphere::new(
+        world.add_hittable(Arc::new(Sphere::new(
             Point3::new(0.0, -100.5, -1.0),
             100.0,
             material_ground,
@@ -169,6 +169,8 @@ impl Scene for RequiredScene {
         let light_color = Color::new(0.9, 0.9, 0.9);
         let light = Light::from_bounds(min, max, light_color);
         world.add_light(light);
+
+        world.build_bvh();
 
         let camera = Camera::from_bounds(min, max, width as f32 / height as f32, angle, 0.5);
 

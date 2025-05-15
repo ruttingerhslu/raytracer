@@ -6,6 +6,8 @@ use crate::core::vec3::{self, Vec3, dot, Point3};
 use crate::objects::hittable::{HitRecord, Hittable};
 use crate::material::material::Material;
 
+use crate::bvh::aabb::AABB;
+
 #[derive(Clone)]
 pub struct Triangle {
     p0: Vec3, // startposition
@@ -120,8 +122,10 @@ impl Hittable for Triangle {
         true
     }
 
-    fn box_clone(&self) -> Box<dyn Hittable> {
-        Box::new(self.clone())
+    fn bounding_box(&self) -> Option<AABB> {
+        let min = vec3::min(vec3::min(self.p0, self.p1), self.p2);
+        let max = vec3::max(vec3::max(self.p0, self.p1), self.p2);
+        Some(AABB { min, max })
     }
 }
 
