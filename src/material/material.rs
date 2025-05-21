@@ -178,3 +178,12 @@ impl Material for TexturedMaterial {
         Color::new(1.0, 1.0, 1.0)
     }
 }
+
+pub struct RoomMaterials {
+    pub floor: Arc<dyn Material>,
+    pub ceiling: Arc<dyn Material>,
+    pub back: Arc<dyn Material>,
+    pub front: Arc<dyn Material>,
+    pub left: Arc<dyn Material>,
+    pub right: Arc<dyn Material>,
+}

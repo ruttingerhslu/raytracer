@@ -59,8 +59,8 @@ impl Camera {
         let diagonal = (max - min).length();
         let radius = diagonal * 1.5;
 
-        let x = radius * angle.cos();
-        let z = radius * angle.sin();
+        let x = radius * angle.to_radians().cos();
+        let z = radius * angle.to_radians().sin();
         let y = diagonal * height_offset_factor;
 
         let lookfrom = center + Vec3::new(x, y, z);

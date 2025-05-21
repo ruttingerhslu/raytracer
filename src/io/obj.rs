@@ -14,7 +14,14 @@ use crate::material::texture::Texture;
 use crate::objects::triangle::Triangle;
 use crate::objects::world::World;
 
-pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn Material>, rotation: Vec3) -> Result<(Point3, Point3)> {
+pub async fn load_obj_from_path(
+    path: &PathBuf, 
+    world: &mut World, 
+    mat: Arc<dyn Material>, 
+    rotation: Vec3,
+    translation: Vec3,
+    max_size: f32,
+) -> Result<(Point3, Point3)> {
     let (models, materials) = tobj::load_obj(
         path,
         &tobj::LoadOptions {
@@ -48,18 +55,32 @@ pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn 
 
     let mut min = Point3::new(f32::MAX, f32::MAX, f32::MAX);
     let mut max = Point3::new(f32::MIN, f32::MIN, f32::MIN);
-    let mut center = Vec3::ZERO;
 
+    // First pass to compute bounding box
+    for model in &models {
+        let mesh = &model.mesh;
+        for p in mesh.positions.chunks(3) {
+            let point = Point3::new(p[0], p[1], p[2]);
+            min = Point3::new(min.x().min(point.x()), min.y().min(point.y()), min.z().min(point.z()));
+            max = Point3::new(max.x().max(point.x()), max.y().max(point.y()), max.z().max(point.z()));
+        }
+    }
+
+    let extent = max - min;
+    let max_extent = extent.x().max(extent.y()).max(extent.z());
+    let scale = max_size / max_extent;
+
+    let center = (min + max) * 0.5;
+
+    // Second pass: load geometry and apply scaling and centering
     for model in models {
         let mesh = &model.mesh;
 
         let positions = mesh.positions.chunks(3)
             .map(|p| {
-                let point = Point3::new(p[0], p[1], p[2]);
-                min = Point3::new(min.x().min(point.x()), min.y().min(point.y()), min.z().min(point.z()));
-                max = Point3::new(max.x().max(point.x()), max.y().max(point.y()), max.z().max(point.z()));
-                center = (min + max) * 0.5;
-                point
+                let local = Point3::new(p[0], p[1], p[2]);
+                // scale and center
+                ((local - center) * scale).rotate_xyz(rotation) + translation
             })
             .collect::<Vec<_>>();
 
@@ -80,9 +101,9 @@ pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn 
                 let i1 = triangle[1] as usize;
                 let i2 = triangle[2] as usize;
 
-                let a = positions[i0].rotate_xyz(rotation) + center;
-                let b = positions[i1].rotate_xyz(rotation) + center;
-                let c = positions[i2].rotate_xyz(rotation) + center;
+                let a = positions[i0];
+                let b = positions[i1];
+                let c = positions[i2];
 
                 let uv0 = texcoords.get(i0).cloned().unwrap_or((0.0, 0.0));
                 let uv1 = texcoords.get(i1).cloned().unwrap_or((0.0, 0.0));
@@ -97,5 +118,8 @@ pub async fn load_obj_from_path(path: &PathBuf, world: &mut World, mat: Arc<dyn 
         }
     }
 
-    Ok((min, max))
+    // Return transformed bounding box
+    let new_min = ((min - center) * scale).rotate_xyz(rotation) + translation;
+    let new_max = ((max - center) * scale).rotate_xyz(rotation) + translation;
+    Ok((new_min, new_max))
 }

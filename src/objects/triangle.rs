@@ -4,7 +4,7 @@ use crate::core::ray::Ray;
 use crate::core::vec3::{self, Vec3, dot, Point3};
 
 use crate::objects::hittable::{HitRecord, Hittable};
-use crate::material::material::Material;
+use crate::material::material::{Material, RoomMaterials};
 
 #[derive(Clone)]
 pub struct Triangle {
@@ -64,6 +64,17 @@ impl Triangle {
         mat: Arc<dyn Material>
     ) -> Self {
         Self::new(p0, p1, p2, (0.0, 0.0), (0.0, 0.0), (0.0, 0.0), mat)
+    }
+
+    pub fn make_wall(p0: Point3, p1: Point3, p2: Point3, material: Arc<dyn Material>) -> Self {
+        Triangle::new_untextured(p0, p1, p2, material)
+    }
+
+    pub fn make_quad(p0: Point3, p1: Point3, p2: Point3, p3: Point3, material: Arc<dyn Material>) -> (Self, Self) {
+        (
+            Triangle::new_untextured(p0, p1, p2, material.clone()),
+            Triangle::new_untextured(p0, p2, p3, material),
+        )
     }
 }
  
@@ -199,4 +210,69 @@ pub fn cube(center: Point3, size: f32, rotation: Vec3, mat: Arc<dyn Material>) -
     tris.push(Triangle::new_untextured(p000, p101, p001, mat.clone()));
 
     tris
+}
+
+pub fn make_room_box(
+    a: f32,
+    vec: Vec3,
+    materials: &RoomMaterials,
+) -> Vec<Triangle> {
+    let mut triangles = Vec::new();
+
+    // Floor (Y = -a)
+    let (f1, f2) = Triangle::make_quad(
+        Point3::new(-a, -a, -a) + vec,
+        Point3::new(a, -a, -a) + vec,
+        Point3::new(a, -a, a) + vec,
+        Point3::new(-a, -a, a) + vec,
+        Arc::clone(&materials.floor),
+    );
+
+    // Ceiling (Y = +a)
+    let (c1, c2) = Triangle::make_quad(
+        Point3::new(-a, a, -a) + vec,
+        Point3::new(a, a, -a) + vec,
+        Point3::new(a, a, a) + vec,
+        Point3::new(-a, a, a) + vec,
+        Arc::clone(&materials.ceiling),
+    );
+
+    // Back wall (Z = -a)
+    let (b1, b2) = Triangle::make_quad(
+        Point3::new(-a, -a, -a) + vec,
+        Point3::new(a, -a, -a) + vec,
+        Point3::new(a, a, -a) + vec,
+        Point3::new(-a, a, -a) + vec,
+        Arc::clone(&materials.back),
+    );
+
+    // Front wall (Z = +a)
+    let (fw1, fw2) = Triangle::make_quad(
+        Point3::new(-a, -a, a) + vec,
+        Point3::new(a, -a, a) + vec,
+        Point3::new(a, a, a) + vec,
+        Point3::new(-a, a, a) + vec,
+        Arc::clone(&materials.front),
+    );
+
+    // Left wall (X = -a)
+    let (l1, l2) = Triangle::make_quad(
+        Point3::new(-a, -a, -a) + vec,
+        Point3::new(-a, -a, a) + vec,
+        Point3::new(-a, a, a) + vec,
+        Point3::new(-a, a, -a) + vec,
+        Arc::clone(&materials.left),
+    );
+
+    // Right wall (X = +a)
+    let (r1, r2) = Triangle::make_quad(
+        Point3::new(a, -a, -a) + vec,
+        Point3::new(a, -a, a) + vec,
+        Point3::new(a, a, a) + vec,
+        Point3::new(a, a, -a) + vec,
+        Arc::clone(&materials.right),
+    );
+
+    triangles.extend([f1, f2, c1, c2, b1, b2, fw1, fw2, l1, l2, r1, r2]);
+    triangles
 }

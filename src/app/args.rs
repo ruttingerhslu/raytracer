@@ -11,12 +11,12 @@ pub struct Args {
     #[arg(long, default_value = "required")]
     pub scene: String,
 
-    #[arg(long, default_value_t = 90.0)]
+    #[arg(long, default_value_t = 0.0)]
     pub angle: f32,
 
     #[arg(long)]
     pub animate: bool,
 
-    #[arg(short, default_value_t = 1024)]
+    #[arg(short, default_value_t = 256)]
     pub resolution: usize,
 }

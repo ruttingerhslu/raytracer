@@ -15,7 +15,7 @@ use crate::core::common;
 use crate::objects::world::World;
 use crate::objects::hittable::HitRecord;
 
-const SAMPLES_PER_PIXEL: i32 = 10;
+const SAMPLES_PER_PIXEL: i32 = 20;
 const MAX_DEPTH: i32 = 10;
 
 pub struct Renderer {
@@ -59,12 +59,14 @@ impl Renderer {
                     let specular_color = Color::new(1.0, 1.0, 1.0);
                     let specular = specular_color * spec_strength;
 
-                    let contribution = (diffuse + specular) * light.intensity() * (1.0/world.lights.len() as f32);
+                    // Light attenuation
+                    let attenuation = 1.0 / (light_distance * light_distance + 1.0); // +1 avoids divide-by-zero
+                    let contribution = (diffuse + specular) * light.intensity() * attenuation;
                     direct_light += contribution;
                 }
             }
 
-            // Recursive scattering (reflection, refraction, etc.)
+            // Recursive scattering (reflection, refraction)
             let mut indirect_light = Color::new(0.0, 0.0, 0.0);
             let mut attenuation = Color::default();
             let mut scattered = Ray::default();
@@ -77,9 +79,10 @@ impl Renderer {
                 indirect_light += attenuation * Self::ray_color(&scattered, world, depth - 1);
             }
 
-            return direct_light * 1.2 + indirect_light * 0.8;
+            return direct_light + indirect_light * 0.8;
         }
 
+        // Background gradient
         let unit_direction = vec3::unit_vector(r.direction());
         let t = 0.5 * (unit_direction.y() + 1.0);
         (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0)
