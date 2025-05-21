@@ -10,3 +10,5 @@ seashell = "https://github.com/pichiliani/ModelsOBJ/raw/refs/heads/master/seashe
 tetrahedron = "https://github.com/pichiliani/ModelsOBJ/raw/refs/heads/master/tetrahedron.obj"
 text = "https://raw.githubusercontent.com/ruttingerhslu/raytracer/refs/heads/main/assets/required_text.obj"
 cat = "https://raw.githubusercontent.com/ruttingerhslu/raytracer/refs/heads/main/assets/cat/oiiaioooooiai_cat.obj"
+raytracer = "https://raw.githubusercontent.com/ruttingerhslu/raytracer/refs/heads/main/assets/raytracer_text.obj"
+raytracer_low = "https://raw.githubusercontent.com/ruttingerhslu/raytracer/refs/heads/main/assets/raytracer_text_low.obj"
