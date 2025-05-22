@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use anyhow::{Result};
 use std::sync::Arc;
 use std::path::PathBuf;
@@ -12,7 +14,7 @@ use crate::core::vec3::{Point3, Vec3};
 use crate::material::material::{Lambertian, Glass, Metal, RoomMaterials}; 
 
 use crate::objects::world::World;
-use crate::objects::triangle::{self};
+use crate::objects::triangle::{self, Triangle};
 use crate::objects::sphere::Sphere;
 use crate::objects::light::Light;
 
@@ -131,53 +133,42 @@ impl Scene for RequiredScene {
         &self,
         obj_path: &PathBuf,
         world: &mut World,
-        _angle: f32,
+        angle: f32,
         height: usize,
         width: usize,
     ) -> Result<Camera> {
-        let glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
-        let _black = Arc::new(Lambertian::new(Color::new(0.2, 0.2, 0.2)));
-        let gold = Arc::new(Metal::new(Color::new(0.8, 0.5, 0.3), 0.8));
-        let _air = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.0));
-        let mirror = Arc::new(Metal::new(Color::new(1.0, 1.0, 1.0), 0.0));
+        let glass = Arc::new(Glass::new(Color::new(0.8, 0.9, 1.0), 1.5));
+        let red = Arc::new(Lambertian::new(Color::new(0.9, 0.1, 0.1)));
+        let green = Arc::new(Lambertian::new(Color::new(0.1, 0.9, 0.1)));
+        let blue = Arc::new(Lambertian::new(Color::new(0.1, 0.1, 0.9)));
+        let yellow = Arc::new(Lambertian::new(Color::new(1.0, 1.0, 0.2)));
 
-
-        let rotation = Vec3::new(std::f32::consts::FRAC_PI_2, std::f32::consts::FRAC_PI_3, 0.0);
-        let translation = Vec3::new(0.0, 2.0, 0.0);
-        let (_, _) = obj::load_obj_from_path(obj_path, world, gold, rotation, translation, 10.0).await?;
-
-        let light_color = Color::new(10.0, 10.0, 10.0);
-        let light_pos = Point3::new(5.9, 6.9, -5.9);
-        let light = Light::new(light_pos, light_color);
-        world.add_light(light);
-        // let light_pos2 = Point3::new(-5.9, 2.5, -5.9);
-        // let light2 = Light::new(light_pos2, light_color);
-        // world.add_light(light2);
-
-        let materials = RoomMaterials {
-            floor: mirror.clone(),
-            ceiling: Arc::new(Lambertian::new(Color::new(0.9, 0.9, 0.9))),
-            back: Arc::new(Lambertian::new(Color::new(0.8, 0.1, 0.1))),
-            front: Arc::new(Lambertian::new(Color::new(0.1, 0.8, 0.1))),
-            left: Arc::new(Lambertian::new(Color::new(0.1, 0.1, 0.8))),
-            right: Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.1))),
-        };
-
-        let room = triangle::make_room_box(6.0, Vec3::new(0.0, 6.0, 0.0), &materials);
-        for wall in room {
-            world.add_hittable(Box::new(wall));
-        }
-
-        let sphere_center = Point3::new(-1.0, 1.5, 2.0); // 2.0 is the radius
+        // Kugel zentriert bei (0, 1, 0) mit Radius 1.5
+        let sphere_center = Point3::new(0.0, 2.0, 0.0);
         world.add_hittable(Box::new(Sphere::new(sphere_center, 1.5, glass.clone())));
 
-        let aspect_ratio = width as f32 / height as f32; // 1.0
-        let lookfrom = Point3::new(5.9, 2.5, 5.9); // position of camera
-        let lookat = Point3::new(0.0, 4.0, 0.0); // point that camera points towards
-        let vup = Vec3::new(0.0, 1.0, 0.0); // "up" in Y direction
-        let vfov_deg = 80.0; // vertical fov in degrees
+        // Ebene als großes Dreieck (einfaches Dreieck in XZ Ebene, y=0)
+        let p0 = Point3::new(-5.0, 0.0, -5.0);
+        let p1 = Point3::new(5.0, 0.0, -5.0);
+        let p2 = Point3::new(0.0, 0.0, 5.0);
+        world.add_hittable(Box::new(Triangle::new_untextured(p0, p1, p2, green.clone())));
 
-        let camera = Camera::perspective(lookfrom, lookat, vup, vfov_deg, aspect_ratio);
+        // Lichtquelle
+        let light_pos = Point3::new(4.0, 5.0, 4.0);
+        let light_color = Color::new(15.0, 15.0, 15.0);
+        let light = Light::new(light_pos, light_color);
+        world.add_light(light);
+
+        // Kamera
+        let radius = 3.0;
+
+        let min = sphere_center - Vec3::new(radius, radius, radius);
+        let max = sphere_center + Vec3::new(radius, radius, radius);
+
+        let aspect_ratio = width as f32 / height as f32;
+        let height_offset_factor = 1.0;
+
+        let camera = Camera::from_bounds(min, max, aspect_ratio, angle, height_offset_factor);
 
         Ok(camera)
     }

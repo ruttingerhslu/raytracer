@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::sync::Arc;
 
 use crate::core::ray::Ray;

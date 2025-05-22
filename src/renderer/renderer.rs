@@ -60,11 +60,14 @@ impl Renderer {
                     let specular = specular_color * spec_strength;
 
                     // Light attenuation
-                    let attenuation = 1.0 / (light_distance * light_distance + 1.0); // +1 avoids divide-by-zero
+                    let attenuation = 1.0 / (light_distance * light_distance + 1.0);
                     let contribution = (diffuse + specular) * light.intensity() * attenuation;
                     direct_light += contribution;
                 }
             }
+
+            // Ambient Light (konstantes Grundlicht)
+            let ambient = rec.mat.as_ref().unwrap().albedo() * 0.1;
 
             // Recursive scattering (reflection, refraction)
             let mut indirect_light = Color::new(0.0, 0.0, 0.0);
@@ -79,7 +82,7 @@ impl Renderer {
                 indirect_light += attenuation * Self::ray_color(&scattered, world, depth - 1);
             }
 
-            return direct_light + indirect_light * 0.8;
+            return ambient + direct_light + indirect_light * 0.8;
         }
 
         // Background gradient

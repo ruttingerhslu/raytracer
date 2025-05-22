@@ -14,7 +14,7 @@ pub async fn render_animation(args: Args, scene: Box<dyn Scene>, obj_path: &Path
     let animation_filename = format!("animation/{}_{}.gif", args.scene, args.model);
 
     for frame in 0..NUM_FRAMES {
-        let angle = frame as f32 / NUM_FRAMES as f32 * std::f32::consts::TAU;
+        let angle = frame as f32 / NUM_FRAMES as f32 * 360.0;
         let mut world = World::new();
         let camera = scene.setup(obj_path, &mut world, angle, height, width).await?;
         let renderer = Renderer::new(camera, world);

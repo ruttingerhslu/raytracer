@@ -67,7 +67,7 @@ impl Camera {
         let lookat = center;
         let vup = Vec3::new(0.0, 1.0, 0.0);
 
-        Self::perspective(lookfrom, lookat, vup, 45.0, aspect_ratio)
+        Self::perspective(lookfrom, lookat, vup, 40.0, aspect_ratio)
     }
 
     pub fn set_position(&mut self, position: Point3) {

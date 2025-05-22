@@ -8,7 +8,7 @@ pub struct Args {
     #[arg(short, long, default_value = "config.toml")]
     pub config: String,
 
-    #[arg(long, default_value = "custom")]
+    #[arg(long, default_value = "required")]
     pub scene: String,
 
     #[arg(long, default_value_t = 0.0)]
@@ -17,6 +17,6 @@ pub struct Args {
     #[arg(long)]
     pub animate: bool,
 
-    #[arg(short, default_value_t = 256)]
+    #[arg(short, default_value_t = 1024)]
     pub resolution: usize,
 }
