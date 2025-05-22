@@ -47,6 +47,7 @@ impl Scene for CustomScene {
         let material_center = Arc::new(Lambertian::new(Color::new(0.7, 0.3, 0.3)));
         let glass = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.5));
         let metal = Arc::new(Metal::new(Color::new(0.9, 0.9, 0.9), 0.3));
+        let gold = Arc::new(Metal::new(Color::new(0.8, 0.5, 0.3), 0.8));
 
         // world sphere (ground)
         world.add_hittable(Box::new(Sphere::new(
@@ -68,9 +69,9 @@ impl Scene for CustomScene {
         }
 
         // loaded object
-        let rotation = Vec3::ZERO;
+        let rotation = Vec3::new(std::f32::consts::FRAC_PI_2, std::f32::consts::FRAC_PI_3, 0.0);
         let translation = Vec3::ZERO;
-        let (min, max) = obj::load_obj_from_path(obj_path, world, neutral, rotation, translation, 1.0).await?;
+        let (min, max) = obj::load_obj_from_path(obj_path, world, gold, rotation, translation, 5.0).await?;
 
         // light
         let light_color = Color::new(10.0, 10.0, 10.0);
@@ -138,22 +139,23 @@ impl Scene for RequiredScene {
         let _black = Arc::new(Lambertian::new(Color::new(0.2, 0.2, 0.2)));
         let gold = Arc::new(Metal::new(Color::new(0.8, 0.5, 0.3), 0.8));
         let _air = Arc::new(Glass::new(Color::new(1.0, 1.0, 1.0), 1.0));
+        let mirror = Arc::new(Metal::new(Color::new(1.0, 1.0, 1.0), 0.0));
 
 
-        let rotation = Vec3::ZERO;
-        let translation = Vec3::new(-2.0, 2.0, -2.0);
-        let (_, _) = obj::load_obj_from_path(obj_path, world, gold.clone(), rotation, translation, 10.0).await?;
+        let rotation = Vec3::new(std::f32::consts::FRAC_PI_2, std::f32::consts::FRAC_PI_3, 0.0);
+        let translation = Vec3::new(0.0, 2.0, 0.0);
+        let (_, _) = obj::load_obj_from_path(obj_path, world, gold, rotation, translation, 10.0).await?;
 
         let light_color = Color::new(10.0, 10.0, 10.0);
         let light_pos = Point3::new(5.9, 6.9, -5.9);
         let light = Light::new(light_pos, light_color);
         world.add_light(light);
-        let light_pos2 = Point3::new(-5.9, 2.5, -5.9);
-        let light2 = Light::new(light_pos2, light_color);
-        world.add_light(light2);
+        // let light_pos2 = Point3::new(-5.9, 2.5, -5.9);
+        // let light2 = Light::new(light_pos2, light_color);
+        // world.add_light(light2);
 
         let materials = RoomMaterials {
-            floor: Arc::new(Lambertian::new(Color::new(0.3, 0.3, 0.3))),
+            floor: mirror.clone(),
             ceiling: Arc::new(Lambertian::new(Color::new(0.9, 0.9, 0.9))),
             back: Arc::new(Lambertian::new(Color::new(0.8, 0.1, 0.1))),
             front: Arc::new(Lambertian::new(Color::new(0.1, 0.8, 0.1))),
@@ -166,24 +168,14 @@ impl Scene for RequiredScene {
             world.add_hittable(Box::new(wall));
         }
 
-        let ground_y = 0.0; // the y-position of the ground
-
-        let sphere_center = Point3::new(-1.0, ground_y + 1.5, 2.0); // 2.0 is the radius
+        let sphere_center = Point3::new(-1.0, 1.5, 2.0); // 2.0 is the radius
         world.add_hittable(Box::new(Sphere::new(sphere_center, 1.5, glass.clone())));
 
-        // let sphere2 = Point3::new(2.0, ground_y + 1.0, -3.0);
-        // world.add_hittable(Box::new(Sphere::new(sphere2, 1.0, gold)));
-        //
-        // let sphere3 = Point3::new(1.0, ground_y + 1.0, 4.0);
-        // world.add_hittable(Box::new(Sphere::new(sphere3, 1.0, glass.clone())));
-        // world.add_hittable(Box::new(Sphere::new(sphere3, 0.9, air)));
-
-        
-        let aspect_ratio = width as f32 / height as f32;
-        let lookfrom = Point3::new(5.9, 2.5, 5.9); // <-- choose position manually
-        let lookat = Point3::new(0.0, 4.0, 0.0);
+        let aspect_ratio = width as f32 / height as f32; // 1.0
+        let lookfrom = Point3::new(5.9, 2.5, 5.9); // position of camera
+        let lookat = Point3::new(0.0, 4.0, 0.0); // point that camera points towards
         let vup = Vec3::new(0.0, 1.0, 0.0); // "up" in Y direction
-        let vfov_deg = 80.0; // vertical field of view
+        let vfov_deg = 80.0; // vertical fov in degrees
 
         let camera = Camera::perspective(lookfrom, lookat, vup, vfov_deg, aspect_ratio);
 

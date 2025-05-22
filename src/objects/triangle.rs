@@ -273,6 +273,7 @@ pub fn make_room_box(
         Arc::clone(&materials.right),
     );
 
-    triangles.extend([f1, f2, c1, c2, b1, b2, fw1, fw2, l1, l2, r1, r2]);
+    // triangles.extend([f1, f2, c1, c2, b1, b2, fw1, fw2, l1, l2, r1, r2]);
+    triangles.extend([l1, l2, b1, b2, f1, f2]);
     triangles
 }

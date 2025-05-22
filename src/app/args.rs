@@ -8,7 +8,7 @@ pub struct Args {
     #[arg(short, long, default_value = "config.toml")]
     pub config: String,
 
-    #[arg(long, default_value = "required")]
+    #[arg(long, default_value = "custom")]
     pub scene: String,
 
     #[arg(long, default_value_t = 0.0)]
